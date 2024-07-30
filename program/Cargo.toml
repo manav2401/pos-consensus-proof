@@ -5,7 +5,7 @@ name = "consensus-proof-program"
 edition = "2021"
 
 [dependencies]
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.7-testnet" }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.1" }
 pos-consensus-proof = { path = "../consensus-proof" }
 reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.0.0"}
 alloy-primitives = { version = "0.7.6", default-features = false }

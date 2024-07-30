@@ -12,7 +12,7 @@ alloy-rlp = { version = "0.2", default-features = false }
 # reth-primitives = { git = "https://github.com/paradigmxyz/reth.git" } # Reth
 # reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.0.1", default-features = false }
 # alloy-primitives = { version = "0.7.7", default-features = false}
-alloy-provider = { version = "0.2" }
+# alloy-provider = { version = "0.2" }
 # alloy-rpc-types-eth = { version = "0.2", default-features = false }
 # alloy-rlp = { version = "0.2", default-features = false }
 # tokio = { version = "1.39.1", features = ["rt-multi-thread", "macros"] }
