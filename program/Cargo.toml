@@ -1,9 +1,18 @@
 [workspace]
 [package]
 version = "0.1.0"
-name = "fibonacci-program"
+name = "consensus-proof-program"
 edition = "2021"
 
 [dependencies]
-alloy-sol-types = "0.7.2"
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.7-testnet" }
+pos-consensus-proof = { path = "../consensus-proof" }
+reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.0.0"}
+alloy-primitives = { version = "0.7.6", default-features = false }
+alloy-rlp = { version = "0.2", default-features = false }
+# alloy-provider = { version = "0.2" }
+# alloy-rpc-types-eth = { version = "0.2", default-features = false }
+# tokio = { version = "1.39.1", features = ["rt-multi-thread", "macros"] }
+# alloy-serde = { version = "0.2", default-features = false }
+# serde = { version = "1.0", default-features = false }
+# serde_json = "1.0.94"
