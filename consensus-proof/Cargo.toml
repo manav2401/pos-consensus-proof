@@ -1,12 +1,10 @@
 [workspace]
 [package]
 version = "0.1.0"
-name = "consensus-proof-program"
+name = "pos-consensus-proof"
 edition = "2021"
 
 [dependencies]
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.1" }
-pos-consensus-proof = { path = "../consensus-proof" }
 reth-primitives = { git = "https://github.com/jtguibas/reth.git", branch = "john/rsp-8e9e6ac", default-features = false, features = [
     "alloy-compat",
     "std",
