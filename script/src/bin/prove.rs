@@ -35,9 +35,7 @@ fn main() {
         .run()
         .expect("failed to generate proof");
 
-    // Generate the proof.
-    // let proof = client.prove(&pk, stdin).run().expect("failed to generate proof");
-    println!("Successfully generated proof: {:?}", proof);
+    println!("Successfully generated proof");
 
     client.verify(&proof, &vk).expect("failed to verify proof");
 

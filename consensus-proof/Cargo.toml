@@ -5,17 +5,12 @@ name = "pos-consensus-proof"
 edition = "2021"
 
 [dependencies]
-# reth-primitives = { git = "https://github.com/paradigm/reth.git", version = "1.0.3"}
-reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.0.0" }
-alloy-primitives = { version = "0.7.6", default-features = false }
-alloy-rlp = { version = "0.2", default-features = false }
-# reth-primitives = { git = "https://github.com/paradigmxyz/reth.git" } # Reth
-# reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.0.1", default-features = false }
-# alloy-primitives = { version = "0.7.7", default-features = false}
-# alloy-provider = { version = "0.2" }
-# alloy-rpc-types-eth = { version = "0.2", default-features = false }
-# alloy-rlp = { version = "0.2", default-features = false }
-# tokio = { version = "1.39.1", features = ["rt-multi-thread", "macros"] }
-# alloy-serde = { version = "0.2", default-features = false }
-# serde = { version = "1.0", default-features = false }
-# serde_json = "1.0.94"
+reth-primitives = { git = "https://github.com/jtguibas/reth.git", branch = "john/rsp-8e9e6ac", default-features = false, features = [
+    "alloy-compat",
+    "std",
+] }
+alloy-primitives = "0.7.2"
+alloy-rlp = "0.3.4"
+
+[patch.crates-io]
+alloy-eips = { git = "https://github.com/jtguibas/alloy.git", branch = "john/rsp-8e9e6ac" }
