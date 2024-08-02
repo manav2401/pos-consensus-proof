@@ -5,9 +5,11 @@ name = "pos-consensus-proof"
 edition = "2021"
 
 [dependencies]
+base64 = "0.22.1"
 reth-primitives = { git = "https://github.com/jtguibas/reth.git", branch = "john/rsp-8e9e6ac", default-features = false, features = [
     "alloy-compat",
     "std",
+    "secp256k1"
 ] }
 alloy-primitives = "0.7.2"
 alloy-rlp = "0.3.4"
