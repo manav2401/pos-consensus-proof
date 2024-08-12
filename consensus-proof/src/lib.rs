@@ -2,9 +2,12 @@ pub mod checkpoint;
 pub mod milestone;
 pub mod types;
 
-use std::str::FromStr;
+use core::str;
+use std::{io::Read, str::FromStr};
 
-use alloy_primitives::{private::alloy_rlp::Decodable, Address, B256};
+use sha2::{Digest, Sha256};
+
+use alloy_primitives::{private::alloy_rlp::Decodable, Address, FixedBytes, B256};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use reth_primitives::{hex, hex::FromHex, keccak256, recover_signer_unchecked, TxHash};
 use types::MilestoneMessage;
@@ -43,38 +46,34 @@ pub fn verify_tx_data(_: &str) -> bool {
 
 // Verifies if the transaction data when hashed results to the given
 // transaction hash or not.
-pub fn verify_tx_hash(tx_data: &str, tx_hash: &str) -> bool {
+pub fn verify_tx_hash(tx_data: &str, expected_hash: &str) -> bool {
     // Decode the transaction data
     let decoded_tx_data = BASE64_STANDARD.decode(tx_data);
     if decoded_tx_data.is_err() {
         return false;
     }
 
-    // Hash the decoded data
-    let derived_tx_hash = keccak256(decoded_tx_data.unwrap().as_slice());
+    // Calculate the hash of decoded data
+    let tx_hash = sha256(decoded_tx_data.unwrap().as_slice());
 
-    // Unwrap the given transaction hash
-    let tx_hash_bytes = TxHash::from_str(tx_hash).unwrap();
+    // Typecast the expected tx hash
+    let expected_hash_bytes = TxHash::from_hex(expected_hash).unwrap();
 
-    // Encode the hash back to match with given transaction hash
-    let encoded_tx_hash = BASE64_STANDARD.encode(derived_tx_hash);
-
-    println!(
-        "Required: {:?}, Derived: {:?}",
-        tx_hash_bytes, derived_tx_hash
-    );
-
-    tx_hash.eq(&encoded_tx_hash)
+    expected_hash_bytes.eq(&tx_hash)
 }
 
-// pub fn signature() {
-//     let valid = verify_signature(
-//         "c+6/gaYRE2Zi1ld4lgyFP9yvbsqGeT7Zyrww8hlZN694oH5gFifaW0zIDAqzX2iU2hm0oBdZ2QwQHZyd0cZ0XQA=",
-//         &keccak256("hello"),
-//         Address::from_hex("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266").unwrap(),
-//     );
-//     println!("{}", valid);
-// }
+fn sha256(decoded_tx_data: &[u8]) -> FixedBytes<32> {
+    // Create a new Sha256 instance
+    let mut hasher = Sha256::new();
+
+    // Write the tx data
+    hasher.update(decoded_tx_data);
+
+    // Read hash digest and consume hasher
+    let result = hasher.finalize();
+
+    TxHash::from_slice(result.as_slice())
+}
 
 pub fn byte_testing() {
     let milestone = MilestoneMessage {

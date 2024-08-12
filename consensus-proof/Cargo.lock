@@ -1207,6 +1207,7 @@ dependencies = [
  "alloy-rlp",
  "base64",
  "reth-primitives",
+ "sha2",
 ]
 
 [[package]]
