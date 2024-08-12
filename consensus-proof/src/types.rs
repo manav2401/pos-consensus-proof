@@ -1,5 +1,5 @@
 use alloy_primitives::Address;
-use reth_primitives::{hex, B256};
+use reth_primitives::B256;
 use std::fmt::{self, Debug, Formatter};
 use std::str::from_utf8;
 

@@ -1,8 +1,7 @@
 use crate::types::MilestoneMessage;
 use crate::*;
 use alloy_primitives::Address;
-use reth_primitives::{hex, hex::FromHex, keccak256, Header, B256};
-
+use reth_primitives::{hex, hex::FromHex, keccak256, Header};
 pub struct MilestoneProof {
     inputs: MilestoneProofInputs,
 }

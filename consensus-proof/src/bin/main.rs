@@ -1,6 +1,5 @@
 fn main() {
     println!("Hello, world!");
-    // pos_consensus_proof::byte_testing();
     let inputs = pos_consensus_proof::milestone::MilestoneProofInputs {
         tx_data: "6AHwYl3uCp4B0ss+ZgoUqmrAL92q9vEg9buYzjCAnRnNXRsQ7+TrHBj75OscIiBVELbKUXyxwqqVdn4ZonVftpOEigC+o0PYMQp9wEQZbSoDMTM3MlEzNzNhY2I4Zi03OGVlLTRkMzctODYwZS03NWZkZjQyZjgyYTQgLSAweDE5YTI3NTVmYjY5Mzg0OGEwMGJlYTM0M2Q4MzEwYTdkYzA0NDE5NmQSQegVvhAXsyj7DXQUYSl+FoNvO/9cvdY2gGKIGtaDOgeSdXZyn5PrNKArkVTgndRHNC+17h4ZO9rF1TF9gEjOwvYB".to_string(),
         tx_hash: "4C6BB9C1426CEF3B0252EFADFBD09B88350F508CC2A4EC0C837612958AD37C85".to_string(),
