@@ -8,6 +8,29 @@ use core::str;
 use reth_primitives::{hex::FromHex, recover_signer_unchecked, TxHash};
 use sha2::{Digest, Sha256};
 
+use std::io::Cursor;
+
+use prost::Message;
+
+// Include the `items` module, which is generated from items.proto.
+pub mod milestone_message {
+    include!(concat!(env!("OUT_DIR"), "/milestone.rs"));
+}
+
+pub fn serialize_milestone(m: &milestone_message::Milestone) -> Vec<u8> {
+    let mut buf = Vec::new();
+    buf.reserve(m.encoded_len());
+    // Unwrap is safe, since we have reserved sufficient capacity in the vector.
+    m.encode_length_delimited(&mut buf).unwrap();
+    buf
+}
+
+pub fn deserialize_milestone(
+    buf: &[u8],
+) -> Result<milestone_message::Milestone, prost::DecodeError> {
+    milestone_message::Milestone::decode_length_delimited(&mut Cursor::new(buf))
+}
+
 // Verifies if the signature is indeed signed by the expected signer or not
 pub fn verify_signature(
     signature: &str,

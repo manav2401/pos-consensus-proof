@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package milestone;
+
+message Milestone {
+    uint64 start_block = 1;
+    uint64 end_block = 2;
+    string bor_chain_id = 3;
+    string milestone_id = 4;
+}
