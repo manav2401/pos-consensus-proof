@@ -9,7 +9,7 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use pos_consensus_proof::milestone::{MilestoneProof, MilestoneProofInputs};
+use pos_consensus_proof::milestone::{MilestoneProofInputs, MilestoneProver};
 pub fn main() {
     let inputs = MilestoneProofInputs {
         tx_data: "6AHwYl3uCp4B0ss+ZgoUqmrAL92q9vEg9buYzjCAnRnNXRsQ7+TrHBj75OscIiBVELbKUXyxwqqVdn4ZonVftpOEigC+o0PYMQp9wEQZbSoDMTM3MlEzNzNhY2I4Zi03OGVlLTRkMzctODYwZS03NWZkZjQyZjgyYTQgLSAweDE5YTI3NTVmYjY5Mzg0OGEwMGJlYTM0M2Q4MzEwYTdkYzA0NDE5NmQSQegVvhAXsyj7DXQUYSl+FoNvO/9cvdY2gGKIGtaDOgeSdXZyn5PrNKArkVTgndRHNC+17h4ZO9rF1TF9gEjOwvYB".to_string(),
@@ -23,6 +23,6 @@ pub fn main() {
         power: vec![100],
     };
 
-    let proof = MilestoneProof::init(inputs);
-    proof.validate();
+    let prover = MilestoneProver::init(inputs);
+    prover.prove();
 }
