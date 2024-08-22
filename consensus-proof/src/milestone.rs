@@ -90,6 +90,7 @@ impl MilestoneProver {
         // In a milestone proof, we assume that we'll only receive 1 element in the headers array
         // and that should be the end block's header present in the milestone message.
         let last_header = headers.last().expect("No headers found");
+        _ = last_header;
 
         // Decode the milestone message. The `milestone_msg` is a hex encoded representation of
         // the milestone. Convert it into appropriate byte array to decode it.

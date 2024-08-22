@@ -37,6 +37,7 @@ pub fn deserialize_msg(buf: &mut Vec<u8>) -> Result<heimdall_types::StdTx, prost
 #[cfg(test)]
 mod tests {
     use super::*;
+    use reth_primitives::hex;
 
     #[test]
     fn test_deserialize_msg() {
@@ -45,7 +46,7 @@ mod tests {
 
         let decoded_msg = deserialize_msg(&mut decoded_bytes).unwrap();
 
-        let m = milestone_message::MilestoneMsg {
+        let m = heimdall_types::MilestoneMsg {
             proposer: hex::decode("FCCCD43296D9C1601A904ECA9B339D94A5E5E098")
                 .unwrap()
                 .to_vec(),
@@ -60,7 +61,7 @@ mod tests {
                     .to_string(),
         };
         let sig = hex::decode("0x7bc767635eb060d2fc42ad3aa67cd0f1991ef1412fc9c28abc1c4eac4700b11d153d6b3258fe29b8e8674a36afdcc5c0203e01987f062fa9fe1ce950265bed2f00").unwrap().to_vec();
-        let msg = milestone_message::StdTx {
+        let msg = heimdall_types::StdTx {
             msg: Some(m),
             signature: sig,
             memo: "".to_string(),
