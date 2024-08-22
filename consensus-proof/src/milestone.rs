@@ -9,7 +9,6 @@ pub struct MilestoneProofInputs {
     pub precommits: Vec<String>,
     pub sigs: Vec<String>,
     pub signers: Vec<String>,
-    pub milestone_msg: String,
     pub headers: Vec<String>,
     pub vote: Vec<bool>,
     pub power: Vec<u64>,
