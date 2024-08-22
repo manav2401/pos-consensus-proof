@@ -1,8 +1,5 @@
-use alloy_primitives::{Address, FixedBytes};
-use pos_consensus_proof::{deserialize_msg, milestone_message, serialize_msg};
-// use prost::message::Message;
-use prost::Message;
-use reth_primitives::{hex, hex::FromHex, TxHash};
+// use alloy_primitives::{Address, FixedBytes};
+// use reth_primitives::{hex, hex::FromHex, TxHash};
 
 fn main() {
     // println!("Hello, world!");

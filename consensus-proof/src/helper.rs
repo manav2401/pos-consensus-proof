@@ -1,9 +1,11 @@
+use crate::types::*;
+
 use base64::{prelude::BASE64_STANDARD, Engine};
 use core::str;
 use sha2::{Digest, Sha256};
 
 use alloy_primitives::{Address, FixedBytes};
-use reth_primitives::{hex::FromHex, recover_signer_unchecked, TxHash};
+use reth_primitives::{hex, hex::FromHex, recover_signer_unchecked, TxHash};
 
 // Verifies if the signature is indeed signed by the expected signer or not
 pub fn verify_signature(
@@ -30,11 +32,28 @@ pub fn verify_signature(
     true
 }
 
-// Verifies if the transaction data actually belongs to the given milestone or not. This method
-// requires amino unmarshaling which is not readily available. Hence, we return true until then.
-// TODO: Implement the actual verification logic
-pub fn verify_tx_data(_: &str) -> bool {
-    true
+// Verifies if the transaction data matches with the given transaction hash or not. It also
+// extracts the milestone message from the transaction data and returns it.
+pub fn verify_tx_data(tx_data: &str, expected_hash: &str) -> Option<heimdall_types::MilestoneMsg> {
+    // Decode the transaction data
+    // TODO: Handle error
+    let mut decoded_tx_data = BASE64_STANDARD.decode(tx_data).unwrap();
+
+    // Calculate the hash of decoded data
+    let tx_hash = sha256(decoded_tx_data.as_slice());
+
+    // Typecast the expected tx hash
+    let expected_hash_bytes = TxHash::from_hex(expected_hash).unwrap();
+
+    if !expected_hash_bytes.eq(&tx_hash) {
+        return None;
+    }
+
+    // Deserialize the message to extract the milestone bytes
+    // TODO: Handle error
+    let decoded_message = deserialize_msg(&mut decoded_tx_data).unwrap();
+
+    Some(decoded_message.msg.unwrap())
 }
 
 // Verifies if the transaction data when hashed results to the given

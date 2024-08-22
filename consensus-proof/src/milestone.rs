@@ -9,7 +9,6 @@ pub struct MilestoneProofInputs {
     pub precommits: Vec<String>,
     pub sigs: Vec<String>,
     pub signers: Vec<String>,
-    pub milestone_msg: String,
     pub headers: Vec<String>,
     pub vote: Vec<bool>,
     pub power: Vec<u64>,
@@ -26,18 +25,8 @@ impl MilestoneProver {
 
     pub fn prove(&self) -> bool {
         // Verify if the transaction data provided is actually correct or not
-        let mut result = verify_tx_data(&self.inputs.tx_data);
-        if !result {
-            println!("Transaction data verification failed");
-            return false;
-        }
-
-        // Verify if the transaction hash provided is actually correct or not
-        result = verify_tx_hash(&self.inputs.tx_data, &self.inputs.tx_hash);
-        if !result {
-            println!("Transaction hash verification failed");
-            return false;
-        }
+        // TODO: Handle error
+        let milestone = verify_tx_data(&self.inputs.tx_data, &self.inputs.tx_hash).unwrap();
 
         // Make sure that we have equal number of precommits, signatures and signers.
         if self.inputs.precommits.len() != self.inputs.sigs.len()
@@ -91,30 +80,17 @@ impl MilestoneProver {
         // and that should be the end block's header present in the milestone message.
         let last_header = headers.last().expect("No headers found");
 
-        // Decode the milestone message. The `milestone_msg` is a hex encoded representation of
-        // the milestone. Convert it into appropriate byte array to decode it.
-        let mut milestone_msg_bytes = [0u8; 157];
-        milestone_msg_bytes.copy_from_slice(
-            hex::decode(self.inputs.milestone_msg.clone())
-                .unwrap()
-                .as_slice(),
-        );
+        // Check if the header's number matches with milestone message's end block
+        let number = last_header.number;
+        if milestone.end_block != number {
+            return false;
+        }
 
-        // let milestone = MilestoneMessage::decode(milestone_msg_bytes);
-
-        // // Check if the header's number matches with milestone message's end block
-        // let number = last_header.number;
-        // if milestone.end_block != number {
-        //     println!("Block number mismatch");
-        //     return false;
-        // }
-
-        // // Check if the header's hash matches with the milestone message's hash
-        // let hash = last_header.hash_slow();
-        // if milestone.hash != hash {
-        //     println!("Block hash mismatch");
-        //     return false;
-        // }
+        // Check if the header's hash matches with the milestone message's hash
+        let hash = last_header.hash_slow().to_vec();
+        if milestone.hash != hash {
+            return false;
+        }
 
         true
     }
