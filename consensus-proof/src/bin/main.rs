@@ -1,4 +1,9 @@
-use pos_consensus_proof::{deserialize_milestone, milestone_message, serialize_milestone};
+use alloy_primitives::{Address, FixedBytes};
+use pos_consensus_proof::{deserialize_msg, milestone_message, serialize_msg};
+// use prost::message::Message;
+use prost::Message;
+use reth_primitives::{hex, hex::FromHex, TxHash};
+
 fn main() {
     // println!("Hello, world!");
     // let inputs = pos_consensus_proof::milestone::MilestoneProofInputs {
@@ -16,17 +21,20 @@ fn main() {
     // let proof = pos_consensus_proof::milestone::MilestoneProof::init(inputs);
     // let res = proof.validate();
     // println!("Validation result: {}", res);
-    println!("Hello, world!");
-    let milestone = milestone_message::Milestone {
-        start_block: 100,
-        end_block: 200,
-        bor_chain_id: "137".to_string(),
-        milestone_id: "milestone".to_string(),
-    };
 
-    let encoded = serialize_milestone(&milestone);
+    let encoded_hex_str = "e801f0625dee0a9e01d2cb3e660a14fcccd43296d9c1601a904eca9b339d94a5e5e09810f8b0841d188ab1841d22207520ee2c289b7ecf623d4f8a44dc6ad772d92ee4375a2014dabea80e7ef8d5522a03313337325164386430396366342d663735662d343864332d386565372d663263323130636237323733202d2030783434646336616437373264393265653433373561323031346461626561383065376566386435353212417bc767635eb060d2fc42ad3aa67cd0f1991ef1412fc9c28abc1c4eac4700b11d153d6b3258fe29b8e8674a36afdcc5c0203e01987f062fa9fe1ce950265bed2f00";
+    let encoded = hex::decode(encoded_hex_str).unwrap();
+
     println!("{:?}", encoded);
 
-    let decoded = deserialize_milestone(&encoded).unwrap();
+    let mut encoded2 = encoded.clone();
+    let old_prefix: Vec<u8> = vec![232, 1, 240, 98, 93, 238, 10, 158, 1, 210, 203, 62, 102];
+    let new_prefix: Vec<u8> = vec![224, 1, 10, 154, 1];
+
+    if encoded2.starts_with(&old_prefix) {
+        encoded2.splice(..old_prefix.len(), new_prefix);
+    }
+
+    let decoded = deserialize_msg(&encoded2).unwrap();
     println!("{:?}", decoded);
 }
