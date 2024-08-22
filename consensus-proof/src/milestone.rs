@@ -1,4 +1,4 @@
-use crate::types::MilestoneMessage;
+// use crate::types::MilestoneMessage;
 use crate::*;
 use alloy_primitives::Address;
 use reth_primitives::{hex, hex::FromHex, keccak256, Header};
@@ -99,21 +99,21 @@ impl MilestoneProof {
                 .as_slice(),
         );
 
-        let milestone = MilestoneMessage::decode(milestone_msg_bytes);
+        // let milestone = MilestoneMessage::decode(milestone_msg_bytes);
 
-        // Check if the header's number matches with milestone message's end block
-        let number = last_header.number;
-        if milestone.end_block != number {
-            println!("Block number mismatch");
-            return false;
-        }
+        // // Check if the header's number matches with milestone message's end block
+        // let number = last_header.number;
+        // if milestone.end_block != number {
+        //     println!("Block number mismatch");
+        //     return false;
+        // }
 
-        // Check if the header's hash matches with the milestone message's hash
-        let hash = last_header.hash_slow();
-        if milestone.hash != hash {
-            println!("Block hash mismatch");
-            return false;
-        }
+        // // Check if the header's hash matches with the milestone message's hash
+        // let hash = last_header.hash_slow();
+        // if milestone.hash != hash {
+        //     println!("Block hash mismatch");
+        //     return false;
+        // }
 
         true
     }

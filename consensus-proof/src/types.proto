@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package milestone;
+package types;
 
 message MilestoneMsg {
     bytes proposer = 1;
@@ -10,7 +10,6 @@ message MilestoneMsg {
     string bor_chain_id = 5;
     string milestone_id = 6;
 }
-
 
 message StdTx {
     MilestoneMsg msg = 1;
