@@ -1,7 +1,9 @@
-use crate::helper::*;
-
-use alloy_primitives::{private::alloy_rlp::Decodable, Address};
+use alloy_primitives::Address;
 use reth_primitives::{hex, hex::FromHex, keccak256, Header};
+
+pub struct MilestoneProof {
+    inputs: MilestoneProofInputs,
+}
 
 pub struct MilestoneProofInputs {
     pub tx_data: String,
@@ -15,16 +17,12 @@ pub struct MilestoneProofInputs {
     pub power: Vec<u64>,
 }
 
-pub struct MilestoneProver {
-    inputs: MilestoneProofInputs,
-}
-
-impl MilestoneProver {
+impl MilestoneProof {
     pub fn init(inputs: MilestoneProofInputs) -> Self {
-        MilestoneProver { inputs }
+        MilestoneProof { inputs }
     }
 
-    pub fn prove(&self) -> bool {
+    pub fn validate(&self) -> bool {
         // Verify if the transaction data provided is actually correct or not
         let mut result = verify_tx_data(&self.inputs.tx_data);
         if !result {
