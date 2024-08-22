@@ -1272,6 +1272,7 @@ dependencies = [
  "bytes",
  "prost",
  "prost-build",
+ "prost-types",
  "reth-primitives",
  "sha2",
 ]
