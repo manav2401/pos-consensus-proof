@@ -10,7 +10,6 @@ pub struct MilestoneProofInputs {
     pub sigs: Vec<String>,
     pub signers: Vec<String>,
     pub headers: Vec<String>,
-    pub vote: Vec<bool>,
     pub power: Vec<u64>,
 }
 
@@ -31,8 +30,7 @@ impl MilestoneProver {
         // Make sure that we have equal number of precommits, signatures and signers.
         if self.inputs.precommits.len() != self.inputs.sigs.len()
             || self.inputs.sigs.len() != self.inputs.signers.len()
-            || self.inputs.signers.len() != self.inputs.vote.len()
-            || self.inputs.vote.len() != self.inputs.power.len()
+            || self.inputs.signers.len() != self.inputs.power.len()
         {
             return false;
         }
@@ -62,10 +60,7 @@ impl MilestoneProver {
                 println!("Signature verification failed for signer: {}", i);
                 return false;
             } else {
-                // Increment majority vote if voted yes
-                if self.inputs.vote[i] {
-                    majority_power += self.inputs.power[i];
-                }
+                majority_power += self.inputs.power[i];
             }
         }
 
