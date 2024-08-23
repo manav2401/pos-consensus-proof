@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package types;
 
 message MilestoneMsg {
@@ -15,4 +17,31 @@ message StdTx {
     MilestoneMsg msg = 1;
     bytes signature = 2;
     string memo = 3;
+}
+
+message CanonicalPartSetHeader {
+	bytes hash = 1;
+    uint32 total = 2;
+}
+
+message CanonicalBlockId {
+    bytes hash = 1;
+    CanonicalPartSetHeader parts_header = 2;
+}
+
+message SideTxResult {
+    bytes tx_hash = 1;
+    int32 result = 2;
+    bytes sig = 3;
+}
+
+message Vote {
+    uint32 type = 1;
+    fixed64 height = 2;
+    fixed64 round = 3;
+    CanonicalBlockId block_id = 4;
+    google.protobuf.Timestamp timestamp = 5;
+    string chain_id = 6;
+    bytes data = 7;
+    SideTxResult side_tx_results = 8; 
 }

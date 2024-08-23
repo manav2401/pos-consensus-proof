@@ -45,6 +45,15 @@ impl MilestoneProver {
         for (i, sig) in self.inputs.sigs.iter().enumerate() {
             let decoded_precommit_message =
                 hex::decode(self.inputs.precommits[i].as_str()).unwrap();
+            let (valid, voted) =
+                verify_precommit(decoded_precommit_message.clone(), &self.inputs.tx_hash);
+            if !valid {
+                println!("Precommit message verification failed for signer: {}", i);
+                return false;
+            }
+            if !voted {
+                continue;
+            }
             if !verify_signature(
                 sig.as_str(),
                 &keccak256(decoded_precommit_message),
