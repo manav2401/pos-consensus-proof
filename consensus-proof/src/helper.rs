@@ -2,6 +2,7 @@ use crate::types::*;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use core::str;
+use prost::Message;
 use sha2::{Digest, Sha256};
 
 use alloy_primitives::{Address, FixedBytes};
@@ -56,22 +57,29 @@ pub fn verify_tx_data(tx_data: &str, expected_hash: &str) -> Option<heimdall_typ
     Some(decoded_message.msg.unwrap())
 }
 
-// Verifies if the transaction data when hashed results to the given
-// transaction hash or not.
-pub fn verify_tx_hash(tx_data: &str, expected_hash: &str) -> bool {
-    // Decode the transaction data
-    let decoded_tx_data = BASE64_STANDARD.decode(tx_data);
-    if decoded_tx_data.is_err() {
-        return false;
+// Verifies if the precommit message includes the milestone side transaction or not by deserialising
+// the encoded precommit message. It also checks if the validator voted yes on transaction or not.
+pub fn verify_precommit(mut precommit_message: Vec<u8>, expected_hash: &str) -> (bool, bool) {
+    // Decode the precommit message
+    // TODO: Handle error
+    let precommit = deserialize_precommit(&mut precommit_message).unwrap();
+    let side_tx = precommit.side_tx_results;
+
+    // If the validator didn't vote on the side transaction, the object will be empty
+    if side_tx.is_none() {
+        return (false, false);
     }
 
-    // Calculate the hash of decoded data
-    let tx_hash = sha256(decoded_tx_data.unwrap().as_slice());
+    let side_tx = side_tx.unwrap();
 
     // Typecast the expected tx hash
     let expected_hash_bytes = TxHash::from_hex(expected_hash).unwrap();
 
-    expected_hash_bytes.eq(&tx_hash)
+    if !expected_hash_bytes.to_vec().eq(&side_tx.tx_hash) {
+        return (false, false);
+    }
+
+    return (true, side_tx.result == 1);
 }
 
 fn sha256(decoded_tx_data: &[u8]) -> FixedBytes<32> {
