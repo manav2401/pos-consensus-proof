@@ -1,7 +1,5 @@
 use prost::Message;
-use prost_types::Timestamp;
-use reth_primitives::{hex, hex::FromHex, keccak256, Header};
-use std::{io::Cursor, str::FromStr};
+use std::io::Cursor;
 
 // Include the `types` module, which is generated from types.proto.
 pub mod heimdall_types {
@@ -56,7 +54,9 @@ pub fn deserialize_msg(buf: &mut Vec<u8>) -> Result<heimdall_types::StdTx, prost
 #[cfg(test)]
 mod tests {
     use super::*;
+    use prost_types::Timestamp;
     use reth_primitives::hex;
+    use std::str::FromStr;
 
     #[test]
     fn test_deserialize_msg() {
