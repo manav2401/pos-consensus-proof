@@ -60,6 +60,8 @@ pub fn verify_tx_data(tx_data: &str, expected_hash: &str) -> Option<heimdall_typ
 // Verifies if the precommit message includes the milestone side transaction or not by deserialising
 // the encoded precommit message. It also checks if the validator voted yes on transaction or not.
 pub fn verify_precommit(mut precommit_message: Vec<u8>, expected_hash: &str) -> (bool, bool) {
+    // Decode the precommit message
+    // TODO: Handle error
     let precommit = deserialize_precommit(&mut precommit_message).unwrap();
     let side_tx = precommit.side_tx_results;
 
