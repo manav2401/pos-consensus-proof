@@ -2,11 +2,10 @@ use crate::types::*;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use core::str;
-use prost::Message;
 use sha2::{Digest, Sha256};
 
 use alloy_primitives::{Address, FixedBytes};
-use reth_primitives::{hex, hex::FromHex, recover_signer_unchecked, TxHash};
+use reth_primitives::{hex::FromHex, recover_signer_unchecked, TxHash};
 
 // Verifies if the signature is indeed signed by the expected signer or not
 pub fn verify_signature(
