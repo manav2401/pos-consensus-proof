@@ -15,6 +15,7 @@ pub fn main() {
     let tx_data = sp1_zkvm::io::read::<String>();
     let tx_hash = sp1_zkvm::io::read::<String>();
     let precommits = sp1_zkvm::io::read::<Vec<String>>();
+    let precommits_hash = sp1_zkvm::io::read::<String>();
     let sigs = sp1_zkvm::io::read::<Vec<String>>();
     let signers = sp1_zkvm::io::read::<Vec<String>>();
     let headers = sp1_zkvm::io::read::<Vec<String>>();
@@ -25,6 +26,7 @@ pub fn main() {
         tx_data,
         tx_hash: tx_hash.clone(),
         precommits,
+        precommits_hash: precommits_hash.clone(),
         sigs,
         signers: signers.clone(),
         headers,
@@ -37,6 +39,7 @@ pub fn main() {
 
     // Commit the values to be exposed to verifier
     sp1_zkvm::io::commit::<String>(&tx_hash);
+    sp1_zkvm::io::commit::<String>(&precommits_hash);
     sp1_zkvm::io::commit::<Vec<String>>(&signers);
     sp1_zkvm::io::commit::<Vec<u64>>(&powers); // Can be later reduced to a single hash of powers
     sp1_zkvm::io::commit::<u64>(&total_power);
