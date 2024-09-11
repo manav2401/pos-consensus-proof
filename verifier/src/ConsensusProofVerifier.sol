@@ -29,10 +29,8 @@ contract ConsensusProofVerifier {
     function verifyConsensusProof(bytes calldata _proofBytes, bytes calldata _publicValues)
         public
         view
-        returns (bool)
     {
-        /// TODO: Fetch data from PoS L1  contracts 
+        /// TODO: Fetch data from PoS L1 contracts 
         ISP1Verifier(verifier).verifyProof(consensusProofVKey, _publicValues, _proofBytes);
-        return true;
     }
 }

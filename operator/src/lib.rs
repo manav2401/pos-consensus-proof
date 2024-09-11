@@ -43,7 +43,7 @@ impl ConsensusProver {
         // let encoded_2 = serde_cbor::to_vec(&target_light_block).unwrap();
 
         // // Write the encoded light blocks to stdin.
-        let mut stdin = SP1Stdin::new();
+        let stdin = SP1Stdin::new();
         // stdin.write_vec(encoded_1);
         // stdin.write_vec(encoded_2);
 
