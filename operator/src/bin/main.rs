@@ -1,8 +1,8 @@
 use pos_consensus_proof::milestone::MilestoneProofInputs;
 use pos_consensus_proof_operator::contract::ContractClient;
-use sp1_sdk::{HashableKey, ProverClient, SP1Stdin};
+use sp1_sdk::{ProverClient, SP1Stdin};
 
-use alloy_sol_types::{sol, SolCall, SolValue};
+use alloy_sol_types::{sol, SolCall};
 
 sol! {
     contract ConsensusProofVerifier {
@@ -33,7 +33,7 @@ async fn main() -> anyhow::Result<()> {
     let client = ProverClient::new();
 
     // Setup the program.
-    let (pk, vk) = client.setup(CONSENSUS_PROOF_ELF);
+    let (pk, _vk) = client.setup(CONSENSUS_PROOF_ELF);
 
     // Setup the inputs.
     let mut stdin = SP1Stdin::new();
