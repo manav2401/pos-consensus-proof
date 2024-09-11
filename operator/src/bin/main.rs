@@ -1,6 +1,6 @@
 use pos_consensus_proof::milestone::MilestoneProofInputs;
 use pos_consensus_proof_operator::contract::ContractClient;
-use sp1_sdk::{ProverClient, SP1Stdin};
+use sp1_sdk::{ProverClient, SP1ProofWithPublicValues, SP1Stdin};
 
 use alloy_sol_types::{sol, SolCall};
 
@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
     sp1_sdk::utils::setup_logger();
 
     // Setup the default contract client to interact with on-chain verifier
-    let contract_client = ContractClient::default();
+    // let contract_client = ContractClient::default();
 
     // Setup the prover client.
     let client = ProverClient::new();
@@ -74,15 +74,18 @@ async fn main() -> anyhow::Result<()> {
     println!("Successfully generated proof: {:?}", proof.bytes());
     println!("Public values: {:?}", proof.public_values.to_vec());
 
-    // Construct the on-chain call and relay the proof to the contract.
-    let call_data = ConsensusProofVerifier::verifyConsensusProofCall {
-        proof: proof.bytes().into(),
-        publicValues: proof.public_values.to_vec().into(),
-    }
-    .abi_encode();
-    contract_client.send(call_data).await?;
+    proof.save("proof.bin").expect("saving proof failed");
+    println!("Proof saved to proof.bin");
 
-    println!("Successfully sent proof to contract for verification");
+    // // Construct the on-chain call and relay the proof to the contract.
+    // let call_data = ConsensusProofVerifier::verifyConsensusProofCall {
+    //     proof: proof.bytes().into(),
+    //     publicValues: proof.public_values.to_vec().into(),
+    // }
+    // .abi_encode();
+    // contract_client.send(call_data).await?;
+
+    // println!("Successfully sent proof to contract for verification");
 
     Ok(())
 }
