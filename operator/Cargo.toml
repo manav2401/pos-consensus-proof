@@ -14,7 +14,7 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1.40.0", features = ["full"] } 
 reqwest = { version = "0.12.7", features = ["json"] }
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.1" }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v2.0.0" }
 alloy-sol-types = "0.7.2"
 alloy-primitives = "0.7.2"
 anyhow = "1.0.82"
@@ -23,7 +23,7 @@ dotenv = "0.15.0"
 pos-consensus-proof = { path = "../consensus-proof" }
 
 [build-dependencies]
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.1" }
+sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", tag = "v2.0.0" }
 
 [patch.crates-io]
 alloy-eips = { git = "https://github.com/jtguibas/alloy.git", branch = "john/rsp-8e9e6ac" }
