@@ -20,6 +20,9 @@ async fn main() -> anyhow::Result<()> {
 
     let proof = SP1ProofWithPublicValues::load("proof.bin").unwrap();
 
+    println!("Successfully loaded proof: {:?}", proof.bytes());
+    println!("Public values: {:?}", proof.public_values.to_vec());
+
     // Setup the default contract client to interact with on-chain verifier
     let contract_client = ContractClient::default();
 
