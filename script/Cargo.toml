@@ -14,8 +14,11 @@ name = "vkey"
 path = "src/bin/vkey.rs"
 
 [dependencies]
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.1" }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v2.0.0" }
 pos-consensus-proof = { path = "../consensus-proof" }
 
 [build-dependencies]
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.1" }
+sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", tag = "v2.0.0" }
+
+[patch.crates-io]
+alloy-eips = { git = "https://github.com/jtguibas/alloy.git", branch = "john/rsp-8e9e6ac" }
