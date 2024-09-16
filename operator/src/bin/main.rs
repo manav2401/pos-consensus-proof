@@ -77,15 +77,22 @@ async fn main() -> anyhow::Result<()> {
     proof.save("proof.bin").expect("saving proof failed");
     println!("Proof saved to proof.bin");
 
-    // // Construct the on-chain call and relay the proof to the contract.
-    // let call_data = ConsensusProofVerifier::verifyConsensusProofCall {
-    //     proof: proof.bytes().into(),
-    //     publicValues: proof.public_values.to_vec().into(),
-    // }
-    // .abi_encode();
-    // contract_client.send(call_data).await?;
+    client
+        .verify(&proof, &pk.vk)
+        .expect("failed to verify proof");
+    println!("Successfully verified proof using sp1 prover client!");
 
-    // println!("Successfully sent proof to contract for verification");
+    println!("Sending proof on-chain for verification");
+
+    // Construct the on-chain call and relay the proof to the contract.
+    let call_data = ConsensusProofVerifier::verifyConsensusProofCall {
+        proof: proof.bytes().into(),
+        publicValues: proof.public_values.to_vec().into(),
+    }
+    .abi_encode();
+    contract_client.send(call_data).await?;
+
+    println!("Successfully verified proof on-chain");
 
     Ok(())
 }
