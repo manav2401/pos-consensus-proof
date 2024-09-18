@@ -12,3 +12,6 @@
 [submodule "verifier/lib/sp1-contracts"]
 	path = verifier/lib/sp1-contracts
 	url = https://github.com/succinctlabs/sp1-contracts
+[submodule "verifier/lib/pos-contracts"]
+	path = verifier/lib/pos-contracts
+	url = https://github.com/0xPolygon/pos-contracts
