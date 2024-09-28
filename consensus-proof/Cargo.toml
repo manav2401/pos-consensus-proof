@@ -17,6 +17,7 @@ reth-primitives = { git = "https://github.com/jtguibas/reth.git", branch = "john
 ] }
 alloy-primitives = "0.7.2"
 alloy-rlp = "0.3.4"
+alloy-sol-types = "0.7.2"
 
 [build-dependencies]
 prost-build = "0.13.1"

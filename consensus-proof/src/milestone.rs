@@ -1,7 +1,19 @@
 use crate::helper::*;
 
 use alloy_primitives::{private::alloy_rlp::Decodable, Address};
+use alloy_sol_types::sol;
 use reth_primitives::{hex, hex::FromHex, keccak256, Header};
+
+sol! {
+    /// The public values encoded as a struct that can be easily deserialized inside Solidity.
+    struct PublicValuesStruct {
+        // string tx_hash;
+        // string precommits_hash;
+        address[] signers;
+        uint64[] powers;
+        uint64 total_power;
+    }
+}
 
 pub struct MilestoneProofInputs {
     pub tx_data: String,

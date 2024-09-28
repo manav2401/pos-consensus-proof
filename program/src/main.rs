@@ -9,7 +9,12 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use pos_consensus_proof::milestone::{MilestoneProofInputs, MilestoneProver};
+use alloy_primitives::Address;
+use alloy_sol_types::SolType;
+
+use pos_consensus_proof::milestone::{MilestoneProofInputs, MilestoneProver, PublicValuesStruct};
+use reth_primitives::hex::FromHex;
+
 pub fn main() {
     // Read inputs from the zkVM's stdin.
     let tx_data = sp1_zkvm::io::read::<String>();
@@ -37,10 +42,18 @@ pub fn main() {
     let prover = MilestoneProver::init(inputs);
     prover.prove();
 
-    // Commit the values to be exposed to verifier
-    sp1_zkvm::io::commit::<String>(&tx_hash);
-    sp1_zkvm::io::commit::<String>(&precommits_hash);
-    sp1_zkvm::io::commit::<Vec<String>>(&signers);
-    sp1_zkvm::io::commit::<Vec<u64>>(&powers); // Can be later reduced to a single hash of powers
-    sp1_zkvm::io::commit::<u64>(&total_power);
+    let signer_addresses = signers
+        .iter()
+        .map(|s| Address::from_hex(s.as_str()).unwrap_or_default())
+        .collect();
+
+    // Encode the public values
+    let bytes = PublicValuesStruct::abi_encode_packed(&PublicValuesStruct {
+        signers: signer_addresses,
+        powers,
+        total_power,
+    });
+
+    // Commit the values as bytes to be exposed to the verifier
+    sp1_zkvm::io::commit_slice(&bytes);
 }
