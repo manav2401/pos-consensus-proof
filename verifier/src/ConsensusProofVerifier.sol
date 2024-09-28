@@ -71,14 +71,14 @@ contract ConsensusProofVerifier {
         for (uint256 i = 0; i < length; i++) {
             if (isActive[i]) {
                 activeSigners[j] = signers[i];
-                activeStakes[j] = stakes[i];
+                activeStakes[j] = stakes[i] / 1e18;
                 j++;
             }
         }
 
         uint256 totalStake;
         (totalStake, ) = StakeManager(posStakeManager).validatorState();
-        bytes memory data = abi.encodePacked(activeSigners, activeStakes, totalStake);
+        bytes memory data = abi.encodePacked(activeSigners, activeStakes, totalStake / 1e18);
         return data;
     }
 
