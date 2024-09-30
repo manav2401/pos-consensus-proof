@@ -118,7 +118,7 @@ mod tests {
             r#type: 2,
             height: 19954482,
             round: 0,
-            block_id: block_id,
+            block_id,
             timestamp: Some(timestamp),
             chain_id: "heimdall-137".to_string(),
             data: [].to_vec(),

@@ -1,6 +1,7 @@
 use sp1_sdk::{ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
 pub mod contract;
+pub mod types;
 pub mod utils;
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
