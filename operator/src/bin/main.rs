@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
     sp1_sdk::utils::setup_logger();
 
     // Setup the default contract client to interact with on-chain verifier
-    // let contract_client = ContractClient::default();
+    let contract_client = ContractClient::default();
 
     // Setup the prover client.
     let client = ProverClient::new();
