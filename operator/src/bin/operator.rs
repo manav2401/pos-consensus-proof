@@ -67,13 +67,10 @@ pub async fn generate_inputs(args: Args) -> MilestoneProofInputs {
         .fetch_milestone_by_id(args.milestone_id)
         .await
         .expect("unable to fetch milestone");
-    println!("Milestone: {:?}\n", milestone);
-
     let tx = client
         .fetch_tx_by_hash(args.milestone_hash)
         .await
         .expect("unable to fetch milestone tx");
-    println!("Tx: {:?}\n", tx);
 
     let validator_set = client
         .fetch_validator_set()
@@ -81,18 +78,13 @@ pub async fn generate_inputs(args: Args) -> MilestoneProofInputs {
         .expect("unable to fetch validator set");
 
     let number: u64 = tx.result.height.parse().unwrap();
-
     let block = client
         .fetch_block_by_number(number + 2)
         .await
         .expect("unable to fetch block");
-    // println!("Block: {:?}\n", block);
 
     let precommits = block.result.block.last_commit.precommits;
-    // println!("Precommits: {:?}\n", precommits);
-
     let precommits_input = precommits.iter().map(serialize_precommit).collect();
-
     let sigs: Vec<String> = precommits.iter().map(|p| p.signature.clone()).collect();
     let signers: Vec<String> = validator_set
         .result
@@ -113,11 +105,6 @@ pub async fn generate_inputs(args: Args) -> MilestoneProofInputs {
         .map(|v| v.power)
         .sum();
 
-    println!("Sigs: {:?}", sigs);
-    println!("Signers: {:?}", signers);
-    println!("Powers: {:?}", powers);
-    println!("Total power: {:?}", total_power);
-
     let bor_headed_rlp_encoded = client
         .fetch_bor_header(milestone.result.end_block)
         .await
@@ -125,9 +112,6 @@ pub async fn generate_inputs(args: Args) -> MilestoneProofInputs {
     let bor_header_bytes = hex::decode(bor_headed_rlp_encoded).unwrap_or_default();
     let bor_header = Header::decode(&mut bor_header_bytes.as_slice()).unwrap();
     let bor_header_hash = bor_header.hash_slow();
-
-    println!("Bor header: {:?}", bor_header);
-    println!("Bor header hash: {:?}", bor_header_hash);
 
     MilestoneProofInputs {
         tx_data: tx.result.tx,
