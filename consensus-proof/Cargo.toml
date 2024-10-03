@@ -10,14 +10,14 @@ sha2 = "0.10.8"
 bytes = "1.7.1"
 prost = "0.13.1"
 prost-types = "0.13.1"
-reth-primitives = { git = "https://github.com/jtguibas/reth.git", branch = "john/rsp-8e9e6ac", default-features = false, features = [
+reth-primitives = { git = "https://github.com/sp1-patches/reth", tag = "rsp-20240830", default-features = false, features = [
     "alloy-compat",
     "std",
-    "k256"
+    "k256",
 ] }
-alloy-primitives = "0.7.2"
+alloy-primitives = "0.8.0"
 alloy-rlp = "0.3.4"
-alloy-sol-types = "0.7.2"
+alloy-sol-types = { version = "0.8" }
 
 [build-dependencies]
 prost-build = "0.13.1"

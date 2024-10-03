@@ -1,8 +1,8 @@
 use crate::helper::*;
 
-use alloy_primitives::{Address, FixedBytes};
+use alloy_primitives::{address, Address, FixedBytes};
 use alloy_sol_types::sol;
-use reth_primitives::{hex::FromHex, keccak256, Header};
+use reth_primitives::{keccak256, Header};
 
 sol! {
     /// The public values encoded as a struct that can be easily deserialized inside Solidity.
@@ -15,16 +15,27 @@ sol! {
     }
 }
 
+sol! {
+    contract ConsensusProofVerifier {
+        function getEncodedValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256);
+    }
+}
+
+const VERIFIER_CONTRACT: Address = address!("1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801");
+const CALLER: Address = address!("0000000000000000000000000000000000000000");
+
 pub struct MilestoneProofInputs {
     pub tx_data: String,
     pub tx_hash: FixedBytes<32>,
     pub precommits: Vec<Vec<u8>>,
     pub sigs: Vec<String>,
-    pub signers: Vec<String>,
+    pub signers: Vec<Address>,
     pub bor_header: Header,
     pub bor_header_hash: FixedBytes<32>,
     pub powers: Vec<u64>,
     pub total_power: u64,
+    pub state_sketch: Vec<u8>,
+    // pub l1_block_hash: FixedBytes<32>,
 }
 
 pub struct MilestoneProver {
@@ -63,10 +74,7 @@ impl MilestoneProver {
         for (i, sig) in self.inputs.sigs.iter().enumerate() {
             let mut precommits = self.inputs.precommits[i].clone();
             verify_precommit(&mut precommits, &self.inputs.tx_hash);
-
-            let signer = Address::from_hex(self.inputs.signers[i].as_str()).unwrap_or_default();
-            verify_signature(sig.as_str(), &keccak256(precommits), signer);
-
+            verify_signature(sig.as_str(), &keccak256(precommits), self.inputs.signers[i]);
             majority_power += self.inputs.powers[i];
         }
 
@@ -75,6 +83,8 @@ impl MilestoneProver {
             panic!("Majority voting power is less than 2/3rd of the total power");
         }
     }
+
+    pub fn get_data_from_l1(&self) {}
 }
 
 // #[cfg(test)]

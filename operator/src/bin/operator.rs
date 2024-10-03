@@ -1,22 +1,35 @@
 use alloy_primitives::private::alloy_rlp::Decodable;
 use alloy_primitives::FixedBytes;
-use alloy_sol_types::{sol, SolCall};
+use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
 use pos_consensus_proof::{milestone::MilestoneProofInputs, types, types::heimdall_types};
 use pos_consensus_proof_operator::{contract::ContractClient, types::Precommit, utils::PosClient};
 use prost_types::Timestamp;
 use reth_primitives::{hex, Header};
-use sp1_sdk::SP1ProofWithPublicValues;
+
 use std::str::FromStr;
+use url::Url;
+
+use alloy_primitives::{address, Address};
+use alloy_provider::ReqwestProvider;
+use alloy_rpc_types::BlockNumberOrTag;
+// use alloy_sol_macro::sol;
+use alloy_sol_types::{sol, SolCall, SolValue};
+use serde::{Deserialize, Serialize};
+use sp1_cc_client_executor::{ContractInput, ContractPublicValues};
+use sp1_cc_host_executor::HostExecutor;
+use sp1_sdk::{utils, HashableKey, ProverClient, SP1ProofWithPublicValues, SP1Stdin};
 
 sol! {
     contract ConsensusProofVerifier {
-        function verifyConsensusProof(
-            bytes calldata proof
-        ) public;
+        function verifyConsensusProof(bytes calldata proof) public view;
+        function getEncodedValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256);
     }
 }
+
+const VERIFIER_CONTRACT: Address = address!("1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801");
+const CALLER: Address = address!("0000000000000000000000000000000000000000");
 
 /// The arguments for the command.
 #[derive(Parser, Debug)]
@@ -27,10 +40,13 @@ pub struct Args {
 
     #[clap(long)]
     milestone_hash: String,
+
+    #[clap(long)]
+    l1_block_number: u64,
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> eyre::Result<()> {
     dotenv::dotenv().ok();
 
     let args = Args::parse();
@@ -39,8 +55,9 @@ async fn main() -> anyhow::Result<()> {
     sp1_sdk::utils::setup_logger();
 
     println!("Assembling data for generating proof...");
+
     // let prover = ConsensusProver::new();
-    let inputs: MilestoneProofInputs = generate_inputs(args).await;
+    let inputs: MilestoneProofInputs = generate_inputs(args).await?;
 
     // println!("Starting to generate proof...");
     // let proof = prover.generate_consensus_proof(inputs);
@@ -60,7 +77,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn generate_inputs(args: Args) -> MilestoneProofInputs {
+pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let client = PosClient::default();
 
     let milestone = client
@@ -72,11 +89,6 @@ pub async fn generate_inputs(args: Args) -> MilestoneProofInputs {
         .await
         .expect("unable to fetch milestone tx");
 
-    let validator_set = client
-        .fetch_validator_set()
-        .await
-        .expect("unable to fetch validator set");
-
     let number: u64 = tx.result.height.parse().unwrap();
     let block = client
         .fetch_block_by_number(number + 2)
@@ -85,25 +97,11 @@ pub async fn generate_inputs(args: Args) -> MilestoneProofInputs {
 
     let precommits = block.result.block.last_commit.precommits;
     let precommits_input = precommits.iter().map(serialize_precommit).collect();
-    let sigs: Vec<String> = precommits.iter().map(|p| p.signature.clone()).collect();
-    let signers: Vec<String> = validator_set
-        .result
-        .validators
+    let sigs = precommits.iter().map(|p| p.signature.clone()).collect();
+    let signers: Vec<Address> = precommits
         .iter()
-        .map(|v| v.signer.clone())
+        .map(|p| Address::from_str(&p.validator_address).unwrap())
         .collect();
-    let powers = validator_set
-        .result
-        .validators
-        .iter()
-        .map(|v| v.power)
-        .collect();
-    let total_power = validator_set
-        .result
-        .validators
-        .iter()
-        .map(|v| v.power)
-        .sum();
 
     let bor_headed_rlp_encoded = client
         .fetch_bor_header(milestone.result.end_block)
@@ -113,7 +111,35 @@ pub async fn generate_inputs(args: Args) -> MilestoneProofInputs {
     let bor_header = Header::decode(&mut bor_header_bytes.as_slice()).unwrap();
     let bor_header_hash = bor_header.hash_slow();
 
-    MilestoneProofInputs {
+    // Which block transactions are executed on.
+    let block_number = BlockNumberOrTag::Number(args.l1_block_number);
+
+    // Prepare the host executor.
+    //
+    // Use `ETH_RPC_URL` to get all of the necessary state for the smart contract call.
+    let rpc_url =
+        std::env::var("ETH_RPC_URL").unwrap_or_else(|_| panic!("Missing ETH_RPC_URL in env"));
+    let provider = ReqwestProvider::new_http(Url::parse(&rpc_url)?);
+    let mut host_executor = HostExecutor::new(provider.clone(), block_number).await?;
+
+    // Keep track of the block hash. Later, validate the client's execution against this.
+    let block_hash = host_executor.header.hash_slow();
+
+    // Make the call to the getEncodedValidatorInfo function.
+    let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
+    let response = host_executor
+        .execute(ContractInput {
+            contract_address: VERIFIER_CONTRACT,
+            caller_address: CALLER,
+            calldata: call,
+        })
+        .await?;
+
+    // Now that we've executed all of the calls, get the `EVMStateSketch` from the host executor.
+    let input = host_executor.finalize().await?;
+    let input_bytes = bincode::serialize(&input)?;
+
+    Ok(MilestoneProofInputs {
         tx_data: tx.result.tx,
         tx_hash: FixedBytes::from_str(&tx.result.hash).unwrap(),
         precommits: precommits_input,
@@ -123,7 +149,8 @@ pub async fn generate_inputs(args: Args) -> MilestoneProofInputs {
         bor_header_hash,
         powers,
         total_power,
-    }
+        input_bytes,
+    })
 }
 
 pub async fn send_proof_onchain(proof: SP1ProofWithPublicValues) -> anyhow::Result<()> {
