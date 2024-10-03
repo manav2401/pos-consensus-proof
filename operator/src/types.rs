@@ -51,7 +51,7 @@ pub struct LastCommit {
 #[derive(Debug, Deserialize)]
 pub struct Precommit {
     #[serde(rename = "type")]
-    pub type_field: u64,
+    pub type_field: u32,
     pub height: String,
     pub round: String,
     pub block_id: BlockId,
@@ -70,13 +70,35 @@ pub struct BlockId {
 
 #[derive(Debug, Deserialize)]
 pub struct Parts {
-    pub total: u64,
+    pub total: u32,
     pub hash: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SideTxResult {
+    #[serde(rename = "tx_hash")]
     pub tx_hash: String,
-    pub result: u64,
-    pub sig: Vec<u8>,
+    pub result: i32,
+    pub sig: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+
+pub struct ValidatorSetResponse {
+    pub result: Validators,
+}
+
+#[derive(Debug, Deserialize)]
+
+pub struct Validators {
+    pub validators: Vec<Validator>,
+}
+
+#[derive(Debug, Deserialize)]
+
+pub struct Validator {
+    #[serde(rename = "ID")]
+    pub id: u64,
+    pub power: u64,
+    pub signer: String,
 }

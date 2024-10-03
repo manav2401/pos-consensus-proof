@@ -27,20 +27,20 @@ pub fn main() {
     let powers = sp1_zkvm::io::read::<Vec<u64>>();
     let total_power = sp1_zkvm::io::read::<u64>();
 
-    let inputs = MilestoneProofInputs {
-        tx_data,
-        tx_hash: tx_hash.clone(),
-        precommits,
-        precommits_hash: precommits_hash.clone(),
-        sigs,
-        signers: signers.clone(),
-        headers,
-        powers: powers.clone(),
-        total_power,
-    };
+    // let inputs = MilestoneProofInputs {
+    //     tx_data,
+    //     tx_hash: tx_hash.clone(),
+    //     precommits,
+    //     precommits_hash: precommits_hash.clone(),
+    //     sigs,
+    //     signers: signers.clone(),
+    //     headers,
+    //     powers: powers.clone(),
+    //     total_power,
+    // };
 
-    let prover = MilestoneProver::init(inputs);
-    prover.prove();
+    // let prover = MilestoneProver::init(inputs);
+    // prover.prove();
 
     let signer_addresses = signers
         .iter()
