@@ -8,8 +8,8 @@ pub mod heimdall_types {
 
 // Serialize the wrapped milestone message into a byte buffer.
 pub fn serialize_precommit(m: &heimdall_types::Vote) -> Vec<u8> {
-    let mut buf = Vec::new();
-    buf.reserve(m.encoded_len());
+    let mut buf = Vec::with_capacity(m.encoded_len());
+
     // Unwrap is safe, since we have reserved sufficient capacity in the vector.
     m.encode_length_delimited(&mut buf).unwrap();
     buf
@@ -25,8 +25,8 @@ pub fn deserialize_precommit(
 
 // Serialize the wrapped milestone message into a byte buffer.
 pub fn serialize_msg(m: &heimdall_types::StdTx) -> Vec<u8> {
-    let mut buf = Vec::new();
-    buf.reserve(m.encoded_len());
+    let mut buf = Vec::with_capacity(m.encoded_len());
+
     // Unwrap is safe, since we have reserved sufficient capacity in the vector.
     m.encode_length_delimited(&mut buf).unwrap();
     buf
@@ -118,7 +118,7 @@ mod tests {
             r#type: 2,
             height: 19954482,
             round: 0,
-            block_id: block_id,
+            block_id,
             timestamp: Some(timestamp),
             chain_id: "heimdall-137".to_string(),
             data: [].to_vec(),

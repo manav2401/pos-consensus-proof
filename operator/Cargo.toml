@@ -12,15 +12,25 @@ edition = "2021"
 # path = "src/bin/vkey.rs"
 
 [dependencies]
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
 tokio = { version = "1.40.0", features = ["full"] } 
 reqwest = { version = "0.12.7", features = ["json"] }
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v2.0.0" }
 reth-primitives = { git = "https://github.com/jtguibas/reth.git", branch = "john/rsp-8e9e6ac", default-features = false }
 alloy-sol-types = "0.7.2"
 alloy-primitives = "0.7.2"
+alloy-provider = "0.4.1"
+alloy-rpc-types = "0.4.1"
+alloy-rlp = "0.3.8"
+alloy-transport-http = "0.4.1"
 anyhow = "1.0.82"
 ethers = "2.0.14"
 dotenv = "0.15.0"
+clap = "4.5.18"
+bincode = "1.3.3"
+prost-types = "0.13.1"
+base64 = "0.22.1"
 pos-consensus-proof = { path = "../consensus-proof" }
 
 [build-dependencies]

@@ -1,6 +1,8 @@
+use pos_consensus_proof::milestone::MilestoneProofInputs;
 use sp1_sdk::{ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
 
 pub mod contract;
+pub mod types;
 pub mod utils;
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
@@ -24,6 +26,7 @@ impl Default for ConsensusProver {
 impl ConsensusProver {
     pub fn new() -> Self {
         println!("Initializing SP1 ProverClient...");
+        sp1_sdk::utils::setup_logger();
         let prover_client = ProverClient::new();
         let (pkey, vkey) = prover_client.setup(CONSENSUS_PROOF_ELF);
         println!("SP1 ProverClient initialized");
@@ -37,15 +40,21 @@ impl ConsensusProver {
     /// Generate a consensus proof suggesting that a state root associated to a bor block has gone
     /// through 2/3+1 consensus in heimdall through the milestone message. Returns an
     /// SP1Groth16Proof.
-    pub fn generate_consensus_proof(&self) -> SP1ProofWithPublicValues {
-        // // Encode the light blocks to be input into our program.
-        // let encoded_1 = serde_cbor::to_vec(&trusted_light_block).unwrap();
-        // let encoded_2 = serde_cbor::to_vec(&target_light_block).unwrap();
+    pub fn generate_consensus_proof(
+        &self,
+        inputs: MilestoneProofInputs,
+    ) -> SP1ProofWithPublicValues {
+        let mut stdin = SP1Stdin::new();
 
-        // // Write the encoded light blocks to stdin.
-        let stdin = SP1Stdin::new();
-        // stdin.write_vec(encoded_1);
-        // stdin.write_vec(encoded_2);
+        // stdin.write(&inputs.tx_data);
+        // stdin.write(&inputs.tx_hash);
+        // stdin.write(&inputs.precommits);
+        // stdin.write(&inputs.precommits_hash);
+        // stdin.write(&inputs.sigs);
+        // stdin.write(&inputs.signers);
+        // stdin.write(&inputs.headers);
+        // stdin.write(&inputs.powers);
+        // stdin.write(&inputs.total_power);
 
         // Generate the proof. Depending on SP1_PROVER env variable, this may be a mock, local or network proof.
         let proof = self
@@ -57,5 +66,11 @@ impl ConsensusProver {
 
         // Return the proof.
         proof
+    }
+
+    pub fn verify_consensus_proof(&self, proof: &SP1ProofWithPublicValues) {
+        self.prover_client
+            .verify(proof, &self.vkey)
+            .expect("Failed to verify proof.");
     }
 }
