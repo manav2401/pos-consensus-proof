@@ -1,18 +1,18 @@
 use crate::helper::*;
+use std::collections::HashMap;
+
+use bincode;
 
 use alloy_primitives::{address, Address, FixedBytes, Uint};
 use alloy_sol_types::{sol, SolCall};
-use bincode;
 use reth_primitives::{keccak256, Header};
 use sp1_cc_client_executor::{io::EVMStateSketch, ClientExecutor, ContractInput};
-use std::collections::HashMap;
 
 sol! {
     /// The public values encoded as a struct that can be easily deserialized inside Solidity.
     struct PublicValuesStruct {
-        address[] signers;
-        uint64[] powers;
-        uint64 total_power;
+        bytes32 bor_block_hash;
+        bytes32 l1_block_hash;
     }
 }
 
@@ -22,6 +22,7 @@ sol! {
         function getEncodedValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256);
     }
 }
+
 const VERIFIER_CONTRACT: Address = address!("1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801");
 const CALLER: Address = address!("0000000000000000000000000000000000000000");
 
@@ -32,8 +33,9 @@ pub struct MilestoneProofInputs {
     pub sigs: Vec<String>,
     pub signers: Vec<Address>,
     pub bor_header: Header,
-    pub bor_header_hash: FixedBytes<32>,
+    pub bor_block_hash: FixedBytes<32>,
     pub state_sketch_bytes: Vec<u8>,
+    pub l1_block_hash: FixedBytes<32>,
 }
 
 pub struct MilestoneProver {

@@ -108,7 +108,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
         .expect("unable to fetch bor header");
     let bor_header_bytes = hex::decode(bor_headed_rlp_encoded).unwrap_or_default();
     let bor_header = Header::decode(&mut bor_header_bytes.as_slice()).unwrap();
-    let bor_header_hash = FixedBytes::from_slice(bor_header.hash_slow().as_slice());
+    let bor_block_hash = FixedBytes::from_slice(bor_header.hash_slow().as_slice());
 
     // Which block transactions are executed on.
     let block_number = BlockNumberOrTag::Number(args.l1_block_number);
@@ -122,11 +122,11 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let mut host_executor = HostExecutor::new(provider.clone(), block_number).await?;
 
     // Keep track of the block hash. Later, validate the client's execution against this.
-    let block_hash = host_executor.header.hash_slow();
+    let l1_block_hash = host_executor.header.hash_slow();
 
     // Make the call to the getEncodedValidatorInfo function.
     let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
-    let response = host_executor
+    let _response: ConsensusProofVerifier::getEncodedValidatorInfoReturn = host_executor
         .execute(ContractInput {
             contract_address: VERIFIER_CONTRACT,
             caller_address: CALLER,
@@ -136,7 +136,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
 
     // Now that we've executed all of the calls, get the `EVMStateSketch` from the host executor.
     let input = host_executor.finalize().await?;
-    let input_bytes = bincode::serialize(&input)?;
+    let state_sketch_bytes = bincode::serialize(&input)?;
 
     Ok(MilestoneProofInputs {
         tx_data: tx.result.tx,
@@ -145,8 +145,9 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
         sigs,
         signers,
         bor_header,
-        bor_header_hash,
-        state_sketch_bytes: input_bytes,
+        bor_block_hash,
+        state_sketch_bytes,
+        l1_block_hash,
     })
 }
 

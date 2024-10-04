@@ -5,7 +5,7 @@ use core::str;
 use sha2::{Digest, Sha256};
 
 use alloy_primitives::{Address, FixedBytes};
-use reth_primitives::{recover_signer_unchecked, TxHash};
+use reth_primitives::recover_signer_unchecked;
 
 // Verifies if the signature is indeed signed by the expected signer or not
 pub fn verify_signature(signature: &str, message_hash: &[u8; 32], expected_signer: Address) {
