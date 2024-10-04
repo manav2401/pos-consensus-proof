@@ -71,7 +71,8 @@ impl MilestoneProver {
         // This step also validates all of the storage against the provided state root.
         let executor = ClientExecutor::new(state_sketch).unwrap();
 
-        // Execute the slot0 call using the client executor.
+        // Execute the `getEncodedValidatorInfo` call using the client executor to fetch the
+        // active validator's info from L1.
         let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
         let input = ContractInput {
             contract_address: VERIFIER_CONTRACT,
@@ -85,9 +86,11 @@ impl MilestoneProver {
         )
         .unwrap();
 
+        // Extract the signers, powers, and total_power from the response.
         let signers = response._0;
         let powers = response._1;
         let total_power = response._2;
+
         let majority_power: Uint<256, 4> = Uint::from(0);
         let mut validator_stakes = HashMap::new();
         for (i, signer) in signers.iter().enumerate() {
@@ -116,6 +119,7 @@ impl MilestoneProver {
             let _ = majority_power.add_mod(validator_stakes[&self.inputs.signers[i]], Uint::MAX);
         }
 
+        // Check if the majority power is greater than 2/3rd of the total power
         let expected_majority = total_power
             .mul_mod(Uint::from(2), Uint::MAX)
             .div_ceil(Uint::from(3));
