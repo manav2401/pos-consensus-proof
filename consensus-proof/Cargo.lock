@@ -4058,21 +4058,13 @@ dependencies = [
 [[package]]
 name = "sp1-cc-client-executor"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1-contract-call/?branch=main#fcb6707df84c6646ff9c0a9044115cea7d956b78"
+source = "git+https://github.com/succinctlabs/sp1-contract-call/?branch=main#b21343241a7ecc86276e8f5a04911e8670dd9183"
 dependencies = [
- "alloy-primitives 0.8.5",
- "alloy-rlp",
  "alloy-sol-types 0.8.5",
  "eyre",
- "reth-chainspec",
- "reth-errors",
- "reth-ethereum-consensus",
  "reth-evm",
  "reth-evm-ethereum",
- "reth-execution-types",
  "reth-primitives 1.0.6",
- "reth-revm",
- "reth-storage-errors",
  "revm",
  "revm-primitives 9.0.2",
  "rsp-client-executor",
@@ -4080,39 +4072,26 @@ dependencies = [
  "rsp-primitives",
  "rsp-witness-db",
  "serde",
- "tokio",
- "tracing",
 ]
 
 [[package]]
 name = "sp1-cc-host-executor"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1-contract-call/?branch=main#fcb6707df84c6646ff9c0a9044115cea7d956b78"
+source = "git+https://github.com/succinctlabs/sp1-contract-call/?branch=main#b21343241a7ecc86276e8f5a04911e8670dd9183"
 dependencies = [
  "alloy-primitives 0.8.5",
  "alloy-provider",
- "alloy-rlp",
  "alloy-rpc-types 0.3.6",
  "alloy-sol-macro 0.8.5",
  "alloy-sol-types 0.8.5",
  "alloy-transport",
  "eyre",
- "reth-chainspec",
- "reth-codecs 1.0.6",
- "reth-errors",
- "reth-execution-types",
  "reth-primitives 1.0.6",
- "reth-storage-errors",
- "reth-trie",
  "revm",
  "revm-primitives 9.0.2",
- "rsp-client-executor",
  "rsp-mpt",
  "rsp-primitives",
  "rsp-rpc-db",
- "rsp-witness-db",
- "serde",
- "serde_json",
  "sp1-cc-client-executor",
  "tokio",
  "tracing",
