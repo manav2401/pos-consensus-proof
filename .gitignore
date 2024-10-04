@@ -17,3 +17,6 @@ pgo-data.profdata
 
 # Env
 .env
+
+# Succinct programs
+program/elf/riscv32im-succinct-zkvm-elf
