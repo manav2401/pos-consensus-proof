@@ -46,15 +46,15 @@ impl ConsensusProver {
     ) -> SP1ProofWithPublicValues {
         let mut stdin = SP1Stdin::new();
 
-        // stdin.write(&inputs.tx_data);
-        // stdin.write(&inputs.tx_hash);
-        // stdin.write(&inputs.precommits);
-        // stdin.write(&inputs.precommits_hash);
-        // stdin.write(&inputs.sigs);
-        // stdin.write(&inputs.signers);
-        // stdin.write(&inputs.headers);
-        // stdin.write(&inputs.powers);
-        // stdin.write(&inputs.total_power);
+        stdin.write(&inputs.tx_data);
+        stdin.write(&inputs.tx_hash);
+        stdin.write(&inputs.precommits);
+        stdin.write(&inputs.sigs);
+        stdin.write(&inputs.signers);
+        stdin.write(&inputs.bor_header);
+        stdin.write(&inputs.bor_block_hash);
+        stdin.write(&inputs.state_sketch_bytes);
+        stdin.write(&inputs.l1_block_hash);
 
         // Generate the proof. Depending on SP1_PROVER env variable, this may be a mock, local or network proof.
         let proof = self

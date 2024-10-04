@@ -78,20 +78,17 @@ contract ConsensusProofVerifier {
 
         uint256 totalStake;
         (totalStake, ) = StakeManager(posStakeManager).validatorState();
-        return (activeSigners, activeStakes, totalStake);
+        return (activeSigners, activeStakes, totalStake / 1e18);
     }
 
     /// @notice The entrypoint for the verifier.
     /// @param _proofBytes The encoded proof.
-    function verifyConsensusProof(bytes calldata _proofBytes)
-        public
-        view
-    {
-        address[] memory activeSigners;
-        uint256[] memory activeStakes;
-        uint256 totalStake;
-        (activeSigners, activeStakes, totalStake) = getEncodedValidatorInfo();
-        bytes memory publicValues = abi.encodePacked(activeSigners, activeStakes, totalStake / 1e18);
+    function verifyConsensusProof(
+        bytes calldata _proofBytes, 
+        bytes32 bor_block_hash, 
+        bytes32 l1_block_hash) 
+    public view {
+        bytes memory publicValues = abi.encodePacked(bor_block_hash, l1_block_hash);
         ISP1Verifier(verifier).verifyProof(consensusProofVKey, publicValues, _proofBytes);
     }
 }

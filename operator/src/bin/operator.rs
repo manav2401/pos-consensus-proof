@@ -4,7 +4,9 @@ use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
 use pos_consensus_proof::{milestone::MilestoneProofInputs, types, types::heimdall_types};
-use pos_consensus_proof_operator::{contract::ContractClient, types::Precommit, utils::PosClient};
+use pos_consensus_proof_operator::{
+    contract::ContractClient, types::Precommit, utils::PosClient, ConsensusProver,
+};
 use prost_types::Timestamp;
 use reth_primitives::{hex, Header};
 
@@ -22,7 +24,7 @@ use sp1_sdk::{utils, HashableKey, ProverClient, SP1ProofWithPublicValues, SP1Std
 
 sol! {
     contract ConsensusProofVerifier {
-        function verifyConsensusProof(bytes calldata proof) public view;
+        function verifyConsensusProof(bytes calldata _proofBytes, bytes32 bor_block_hash, bytes32 l1_block_hash) public view;
         function getEncodedValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256);
     }
 }
@@ -55,23 +57,23 @@ async fn main() -> eyre::Result<()> {
 
     println!("Assembling data for generating proof...");
 
-    // let prover = ConsensusProver::new();
+    let prover = ConsensusProver::new();
     let inputs: MilestoneProofInputs = generate_inputs(args).await?;
 
-    // println!("Starting to generate proof...");
-    // let proof = prover.generate_consensus_proof(inputs);
+    println!("Starting to generate proof...");
+    let proof = prover.generate_consensus_proof(inputs.clone());
 
-    // println!("Successfully generated proof: {:?}", proof.bytes());
-    // println!("Public values: {:?}", proof.public_values.to_vec());
+    println!("Successfully generated proof: {:?}", proof.bytes());
+    println!("Public values: {:?}", proof.public_values.to_vec());
 
-    // proof.save("proof.bin").expect("saving proof failed");
-    // println!("Proof saved to proof.bin");
+    proof.save("proof.bin").expect("saving proof failed");
+    println!("Proof saved to proof.bin");
 
-    // prover.verify_consensus_proof(&proof);
-    // println!("Proof verified, sending for on-chain verification!");
+    prover.verify_consensus_proof(&proof);
+    println!("Proof verified, sending for on-chain verification!");
 
-    // send_proof_onchain(proof).await?;
-    // println!("Successfully verified proof on-chain!");
+    send_proof_onchain(proof, inputs.clone()).await?;
+    println!("Successfully verified proof on-chain!");
 
     Ok(())
 }
@@ -151,16 +153,24 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     })
 }
 
-pub async fn send_proof_onchain(proof: SP1ProofWithPublicValues) -> anyhow::Result<()> {
+pub async fn send_proof_onchain(
+    proof: SP1ProofWithPublicValues,
+    inputs: MilestoneProofInputs,
+) -> eyre::Result<()> {
     // Setup the default contract client to interact with on-chain verifier
     let contract_client = ContractClient::default();
 
     // Construct the on-chain call and relay the proof to the contract.
     let call_data = ConsensusProofVerifier::verifyConsensusProofCall {
-        proof: proof.bytes().into(),
+        _proofBytes: proof.bytes().into(),
+        bor_block_hash: inputs.bor_block_hash,
+        l1_block_hash: inputs.l1_block_hash,
     }
     .abi_encode();
-    contract_client.send(call_data).await?;
+    contract_client
+        .send(call_data)
+        .await
+        .expect("failed to send proof on-chain");
 
     Ok(())
 }

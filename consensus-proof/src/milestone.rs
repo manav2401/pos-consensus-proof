@@ -18,7 +18,7 @@ sol! {
 
 sol! {
     contract ConsensusProofVerifier {
-        function verifyConsensusProof(bytes calldata proof) public view;
+        function verifyConsensusProof(bytes calldata _proofBytes, bytes32 bor_block_hash, bytes32 l1_block_hash) public view;
         function getEncodedValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256);
     }
 }
@@ -26,6 +26,7 @@ sol! {
 const VERIFIER_CONTRACT: Address = address!("1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801");
 const CALLER: Address = address!("0000000000000000000000000000000000000000");
 
+#[derive(Clone)]
 pub struct MilestoneProofInputs {
     pub tx_data: String,
     pub tx_hash: FixedBytes<32>,
