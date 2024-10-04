@@ -45,3 +45,21 @@ message Vote {
     bytes data = 7;
     SideTxResult side_tx_results = 8; 
 }
+
+message Validator {
+    uint64 id = 1;
+    uint64 start_epoch = 2;
+    uint64 end_epoch = 3;
+    uint64 nonce = 4;
+    int64 voting_power = 5;
+    bytes pub_key = 6;
+    bytes signer = 7;
+    string last_updated = 8;
+    bool jailed = 9;
+    int64 proposer_priority = 10;
+}
+
+message ValidatorSet {
+    repeated Validator validators = 1;
+    Validator proposer = 2;
+}

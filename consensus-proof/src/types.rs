@@ -51,6 +51,20 @@ pub fn deserialize_msg(buf: &mut Vec<u8>) -> Result<heimdall_types::StdTx, prost
     heimdall_types::StdTx::decode_length_delimited(&mut Cursor::new(buf))
 }
 
+pub fn deserialize_validator_set(
+    buf: &mut Vec<u8>,
+) -> Result<heimdall_types::ValidatorSet, prost::DecodeError> {
+    heimdall_types::ValidatorSet::decode(&mut Cursor::new(buf))
+}
+
+pub fn serialize_validator_set(m: &heimdall_types::ValidatorSet) -> Vec<u8> {
+    let mut buf = Vec::with_capacity(m.encoded_len());
+
+    // Unwrap is safe, since we have reserved sufficient capacity in the vector.
+    m.encode_length_delimited(&mut buf).unwrap();
+    buf
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -60,7 +74,7 @@ mod tests {
 
     #[test]
     fn test_deserialize_msg() {
-        let decoded_str = "e801f0625dee0a9e01d2cb3e660a14fcccd43296d9c1601a904eca9b339d94a5e5e09810f8b0841d188ab1841d22207520ee2c289b7ecf623d4f8a44dc6ad772d92ee4375a2014dabea80e7ef8d5522a03313337325164386430396366342d663735662d343864332d386565372d663263323130636237323733202d2030783434646336616437373264393265653433373561323031346461626561383065376566386435353212417bc767635eb060d2fc42ad3aa67cd0f1991ef1412fc9c28abc1c4eac4700b11d153d6b3258fe29b8e8674a36afdcc5c0203e01987f062fa9fe1ce950265bed2f00";
+        let decoded_str = "e801f0625dee0a9e01d2cb3e660a14fcccd43296d9c1601a904eca9b339d94a5e5e09810f8b0841d188ab1841d22207520ee2c289b7ecf623d4f8a44dc6ad772d92ee4375a2014dabea80e7ef8d55222a03313337325164386430396366342d663735662d343864332d386565372d663263323130636237323733202d2030783434646336616437373264393265653433373561323031346461626561383065376566386435353212417bc767635eb060d2fc42ad3aa67cd0f1991ef1412fc9c28abc1c4eac4700b11d153d6b3258fe29b8e8674a36afdcc5c0203e01987f062fa9fe1ce950265bed2f00";
         let mut decoded_bytes = hex::decode(decoded_str).unwrap();
 
         let decoded_msg = deserialize_msg(&mut decoded_bytes).unwrap();
@@ -126,5 +140,44 @@ mod tests {
         };
 
         assert_eq!(decoded, vote);
+    }
+
+    #[test]
+    fn test_validator_set() {
+        let hex_msg = "0a600801200128904e324104dc19fdf9a82fd5c4327f31b96b6bbe0b9d44564ad89c2139db47c5cb2def87ac584fc05117663de2f17ae5ee50eced7283a596e10aaf33fb34c4cf5f98e4fda73a146ab3d36c46ecfb9b9c0bd51cb1c3da5a2c81cea612600801200128904e324104dc19fdf9a82fd5c4327f31b96b6bbe0b9d44564ad89c2139db47c5cb2def87ac584fc05117663de2f17ae5ee50eced7283a596e10aaf33fb34c4cf5f98e4fda73a146ab3d36c46ecfb9b9c0bd51cb1c3da5a2c81cea6";
+        let mut bytes_msg = hex::decode(hex_msg).unwrap();
+
+        let decoded = deserialize_validator_set(&mut bytes_msg);
+
+        let validator_set = heimdall_types::ValidatorSet {
+                    validators: vec![
+                        heimdall_types::Validator {
+                            id: 1,
+                            start_epoch: 0,
+                            end_epoch: 0,
+                            nonce: 1,
+                            voting_power: 10000,
+                            pub_key: hex::decode("0x04dc19fdf9a82fd5c4327f31b96b6bbe0b9d44564ad89c2139db47c5cb2def87ac584fc05117663de2f17ae5ee50eced7283a596e10aaf33fb34c4cf5f98e4fda7").unwrap().to_vec(),
+                            signer: hex::decode("0x6ab3d36c46ecfb9b9c0bd51cb1c3da5a2c81cea6").unwrap().to_vec(),
+                            last_updated: "".to_string(),
+                            jailed: false,
+                            proposer_priority: 0,
+                        },
+                    ],
+                    proposer: Some(heimdall_types::Validator {
+                        id: 1,
+                        start_epoch: 0,
+                        end_epoch: 0,
+                        nonce: 1,
+                        voting_power: 10000,
+                        pub_key: hex::decode("0x04dc19fdf9a82fd5c4327f31b96b6bbe0b9d44564ad89c2139db47c5cb2def87ac584fc05117663de2f17ae5ee50eced7283a596e10aaf33fb34c4cf5f98e4fda7").unwrap().to_vec(),
+                        signer: hex::decode("0x6ab3d36c46ecfb9b9c0bd51cb1c3da5a2c81cea6").unwrap().to_vec(),
+                        last_updated: "".to_string(),
+                        jailed: false,
+                        proposer_priority: 0,
+            }),
+        };
+
+        assert_eq!(decoded.unwrap(), validator_set);
     }
 }
