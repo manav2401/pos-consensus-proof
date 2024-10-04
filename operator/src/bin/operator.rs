@@ -1,26 +1,25 @@
-use alloy_primitives::private::alloy_rlp::Decodable;
-use alloy_primitives::FixedBytes;
-use anyhow::Result;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
+use prost_types::Timestamp;
+use std::str::FromStr;
+use url::Url;
+
+use alloy_primitives::private::alloy_rlp::Decodable;
+use alloy_primitives::FixedBytes;
+use alloy_primitives::{address, Address};
+use alloy_provider::ReqwestProvider;
+use alloy_rpc_types::BlockNumberOrTag;
+use alloy_sol_types::{sol, SolCall};
+use reth_primitives::{hex, Header};
+
+use sp1_cc_client_executor::ContractInput;
+use sp1_cc_host_executor::HostExecutor;
+use sp1_sdk::SP1ProofWithPublicValues;
+
 use pos_consensus_proof::{milestone::MilestoneProofInputs, types, types::heimdall_types};
 use pos_consensus_proof_operator::{
     contract::ContractClient, types::Precommit, utils::PosClient, ConsensusProver,
 };
-use prost_types::Timestamp;
-use reth_primitives::{hex, Header};
-
-use std::str::FromStr;
-use url::Url;
-
-use alloy_primitives::{address, Address};
-use alloy_provider::ReqwestProvider;
-use alloy_rpc_types::BlockNumberOrTag;
-use alloy_sol_types::{sol, SolCall, SolValue};
-use serde::{Deserialize, Serialize};
-use sp1_cc_client_executor::{ContractInput, ContractPublicValues};
-use sp1_cc_host_executor::HostExecutor;
-use sp1_sdk::{utils, HashableKey, ProverClient, SP1ProofWithPublicValues, SP1Stdin};
 
 sol! {
     contract ConsensusProofVerifier {
