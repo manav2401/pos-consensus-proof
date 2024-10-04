@@ -5,7 +5,7 @@ use core::str;
 use sha2::{Digest, Sha256};
 
 use alloy_primitives::{Address, FixedBytes};
-use reth_primitives::{recover_signer_unchecked, TxHash};
+use reth_primitives::recover_signer_unchecked;
 
 // Verifies if the signature is indeed signed by the expected signer or not
 pub fn verify_signature(signature: &str, message_hash: &[u8; 32], expected_signer: Address) {
@@ -20,9 +20,10 @@ pub fn verify_signature(signature: &str, message_hash: &[u8; 32], expected_signe
 
     // Recover the signer address
     let recovered_signer = recover_signer_unchecked(&sig, message_hash).unwrap_or_default();
+    let recovered_signer_alloy = Address::from_slice(recovered_signer.as_slice());
 
     assert_eq!(
-        expected_signer, recovered_signer,
+        expected_signer, recovered_signer_alloy,
         "recovered and expected signature mismatch"
     );
 }
@@ -79,5 +80,5 @@ fn sha256(decoded_tx_data: &[u8]) -> FixedBytes<32> {
     // Read hash digest and consume hasher
     let result = hasher.finalize();
 
-    TxHash::from_slice(result.as_slice())
+    FixedBytes::from_slice(result.as_slice())
 }

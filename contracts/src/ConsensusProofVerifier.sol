@@ -39,7 +39,7 @@ contract ConsensusProofVerifier {
     /// @notice Fetches the active validator info like signer address, respective stake, and 
     ///         total stake and returns the encoded data.
     /// @return encodedValidatorInfo abi encoded data of all active validators
-    function getEncodedValidatorInfo() public view returns (bytes memory) {
+    function getEncodedValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256) {
         // Get the total number of validators stored by fetching the NFT count. The count is
         // assigned to the next validator and hence we subtract 1 from it.
         uint256 length = StakeManager(posStakeManager).NFTCounter() - 1;
@@ -78,17 +78,17 @@ contract ConsensusProofVerifier {
 
         uint256 totalStake;
         (totalStake, ) = StakeManager(posStakeManager).validatorState();
-        bytes memory data = abi.encodePacked(activeSigners, activeStakes, totalStake / 1e18);
-        return data;
+        return (activeSigners, activeStakes, totalStake / 1e18);
     }
 
     /// @notice The entrypoint for the verifier.
     /// @param _proofBytes The encoded proof.
-    function verifyConsensusProof(bytes calldata _proofBytes)
-        public
-        view
-    {
-        bytes memory publicValues = getEncodedValidatorInfo();
+    function verifyConsensusProof(
+        bytes calldata _proofBytes, 
+        bytes32 bor_block_hash, 
+        bytes32 l1_block_hash) 
+    public view {
+        bytes memory publicValues = abi.encodePacked(bor_block_hash, l1_block_hash);
         ISP1Verifier(verifier).verifyProof(consensusProofVKey, publicValues, _proofBytes);
     }
 }

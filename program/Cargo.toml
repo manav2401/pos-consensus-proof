@@ -12,9 +12,9 @@ reth-primitives = { git = "https://github.com/jtguibas/reth.git", branch = "john
     "std",
     "k256"
 ] }
-alloy-primitives = "0.7.2"
+alloy-primitives = "0.8.0"
 alloy-rlp = "0.3.4"
-alloy-sol-types = "0.7.2"
+alloy-sol-types = { version = "0.8" }
 
 [patch.crates-io]
 alloy-eips = { git = "https://github.com/jtguibas/alloy.git", branch = "john/rsp-8e9e6ac" }
