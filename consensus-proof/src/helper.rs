@@ -53,10 +53,10 @@ pub fn verify_tx_data(
 
 // Verifies if the precommit message includes the milestone side transaction or not by deserialising
 // the encoded precommit message. It also checks if the validator voted yes on transaction or not.
-pub fn verify_precommit(precommit_message: &Vec<u8>, expected_hash: &FixedBytes<32>) {
+pub fn verify_precommit(precommit_message: &mut Vec<u8>, expected_hash: &FixedBytes<32>) {
     // Decode the precommit message
-    let precommit = deserialize_precommit(&mut precommit_message.clone())
-        .expect("precommit deserialization failed");
+    let precommit =
+        deserialize_precommit(precommit_message).expect("precommit deserialization failed");
     let side_tx = precommit.side_tx_results;
 
     // If the validator didn't vote on the side transaction, the object will be empty

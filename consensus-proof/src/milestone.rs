@@ -103,7 +103,7 @@ impl MilestoneProver {
 
             // Verify if the precommit message is for the same milestone transaction or not.
             let precommit = &self.inputs.precommits[i];
-            verify_precommit(precommit, &self.inputs.tx_hash);
+            verify_precommit(&mut precommit.clone(), &self.inputs.tx_hash);
 
             // Verify if the message is indeed signed by the validator or not.
             verify_signature(
