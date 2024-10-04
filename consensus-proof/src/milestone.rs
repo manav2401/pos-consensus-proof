@@ -3,9 +3,9 @@ use std::collections::HashMap;
 
 use bincode;
 
-use alloy_primitives::{address, Address, FixedBytes, Uint};
+use alloy_primitives::{address, keccak256, Address, FixedBytes, Uint};
 use alloy_sol_types::{sol, SolCall};
-use reth_primitives::{keccak256, Header};
+use reth_primitives::Header;
 use sp1_cc_client_executor::{io::EVMStateSketch, ClientExecutor, ContractInput};
 
 sol! {

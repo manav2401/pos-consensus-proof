@@ -4709,10 +4709,9 @@ dependencies = [
  "prost 0.13.2",
  "prost-build",
  "prost-types",
- "reth-primitives 1.0.1",
+ "reth-primitives 1.0.6",
  "sha2",
  "sp1-cc-client-executor",
- "sp1-cc-host-executor",
 ]
 
 [[package]]
@@ -5626,7 +5625,6 @@ dependencies = [
  "bytes",
  "cfg-if",
  "derive_more 0.99.18",
- "k256",
  "modular-bitfield",
  "once_cell",
  "rayon",
