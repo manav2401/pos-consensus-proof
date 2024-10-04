@@ -1,13 +1,8 @@
 use crate::types::{BlockResponse, MilestoneResponse, TxResponse, ValidatorSetResponse};
 
-use alloy_rpc_types::Block;
 use anyhow::Result;
-use reqwest::header::{
-    self, HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, UPGRADE_INSECURE_REQUESTS, USER_AGENT,
-};
+use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
-use sp1_sdk::proto::network::twirp::axum::Json;
-use std::borrow::Borrow;
 use std::env;
 
 // PosClient holds a http client instance along with endpoints for heimdall rest-server,
