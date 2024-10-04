@@ -20,9 +20,10 @@ pub fn verify_signature(signature: &str, message_hash: &[u8; 32], expected_signe
 
     // Recover the signer address
     let recovered_signer = recover_signer_unchecked(&sig, message_hash).unwrap_or_default();
+    let recovered_signer_alloy = Address::from_slice(recovered_signer.as_slice());
 
     assert_eq!(
-        expected_signer, recovered_signer,
+        expected_signer, recovered_signer_alloy,
         "recovered and expected signature mismatch"
     );
 }
@@ -52,10 +53,10 @@ pub fn verify_tx_data(
 
 // Verifies if the precommit message includes the milestone side transaction or not by deserialising
 // the encoded precommit message. It also checks if the validator voted yes on transaction or not.
-pub fn verify_precommit(precommit_message: &mut Vec<u8>, expected_hash: &FixedBytes<32>) {
+pub fn verify_precommit(precommit_message: &Vec<u8>, expected_hash: &FixedBytes<32>) {
     // Decode the precommit message
-    let precommit =
-        deserialize_precommit(precommit_message).expect("precommit deserialization failed");
+    let precommit = deserialize_precommit(&mut precommit_message.clone())
+        .expect("precommit deserialization failed");
     let side_tx = precommit.side_tx_results;
 
     // If the validator didn't vote on the side transaction, the object will be empty
@@ -79,5 +80,5 @@ fn sha256(decoded_tx_data: &[u8]) -> FixedBytes<32> {
     // Read hash digest and consume hasher
     let result = hasher.finalize();
 
-    TxHash::from_slice(result.as_slice())
+    FixedBytes::from_slice(result.as_slice())
 }

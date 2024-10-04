@@ -17,8 +17,7 @@ serde = { version = "1.0", default-features = false, features = ["derive"] }
 tokio = { version = "1.40.0", features = ["full"] } 
 reqwest = { version = "0.12.7", features = ["json"] }
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v2.0.0" }
-# reth-primitives = { git = "https://github.com/jtguibas/reth.git", branch = "john/rsp-8e9e6ac", default-features = false }
-reth-primitives = { git = "https://github.com/sp1-patches/reth", tag = "rsp-20240830", default-features = false, features = [
+reth-primitives = { git = "https://github.com/jtguibas/reth.git", branch = "john/rsp-8e9e6ac", default-features = false, features = [
     "alloy-compat",
     "std",
 ] }

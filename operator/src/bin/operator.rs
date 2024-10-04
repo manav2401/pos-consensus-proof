@@ -14,7 +14,6 @@ use url::Url;
 use alloy_primitives::{address, Address};
 use alloy_provider::ReqwestProvider;
 use alloy_rpc_types::BlockNumberOrTag;
-// use alloy_sol_macro::sol;
 use alloy_sol_types::{sol, SolCall, SolValue};
 use serde::{Deserialize, Serialize};
 use sp1_cc_client_executor::{ContractInput, ContractPublicValues};
@@ -109,7 +108,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
         .expect("unable to fetch bor header");
     let bor_header_bytes = hex::decode(bor_headed_rlp_encoded).unwrap_or_default();
     let bor_header = Header::decode(&mut bor_header_bytes.as_slice()).unwrap();
-    let bor_header_hash = bor_header.hash_slow();
+    let bor_header_hash = FixedBytes::from_slice(bor_header.hash_slow().as_slice());
 
     // Which block transactions are executed on.
     let block_number = BlockNumberOrTag::Number(args.l1_block_number);
@@ -147,9 +146,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
         signers,
         bor_header,
         bor_header_hash,
-        powers,
-        total_power,
-        input_bytes,
+        state_sketch_bytes: input_bytes,
     })
 }
 
