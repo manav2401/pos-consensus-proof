@@ -116,6 +116,7 @@ impl PosClient {
 
     pub async fn fetch_bor_header(&self, number: u64) -> Result<String> {
         let url = format!("{}/header?number={}", self.bor_url, number);
+        println!("Fetching bor header from: {}", url);
         let response = self.http_client.get(url).send().await.unwrap();
         let encoded_header = response.text().await.unwrap();
         Ok(encoded_header)

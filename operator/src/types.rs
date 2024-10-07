@@ -59,7 +59,7 @@ pub struct Precommit {
     pub validator_address: String,
     pub validator_index: String,
     pub signature: String,
-    pub side_tx_results: Vec<SideTxResult>,
+    pub side_tx_results: Option<Vec<SideTxResult>>,
 }
 
 #[derive(Debug, Deserialize)]
