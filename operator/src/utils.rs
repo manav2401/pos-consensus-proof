@@ -1,13 +1,8 @@
 use crate::types::{BlockResponse, MilestoneResponse, TxResponse, ValidatorSetResponse};
 
-use alloy_rpc_types::Block;
 use anyhow::Result;
-use reqwest::header::{
-    self, HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, UPGRADE_INSECURE_REQUESTS, USER_AGENT,
-};
+use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
-use sp1_sdk::proto::network::twirp::axum::Json;
-use std::borrow::Borrow;
 use std::env;
 
 // PosClient holds a http client instance along with endpoints for heimdall rest-server,
@@ -121,6 +116,7 @@ impl PosClient {
 
     pub async fn fetch_bor_header(&self, number: u64) -> Result<String> {
         let url = format!("{}/header?number={}", self.bor_url, number);
+        println!("Fetching bor header from: {}", url);
         let response = self.http_client.get(url).send().await.unwrap();
         let encoded_header = response.text().await.unwrap();
         Ok(encoded_header)

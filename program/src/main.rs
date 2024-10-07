@@ -23,7 +23,6 @@ pub fn main() {
     let sigs = sp1_zkvm::io::read::<Vec<String>>();
     let signers = sp1_zkvm::io::read::<Vec<Address>>();
     let bor_header = sp1_zkvm::io::read::<Header>();
-    let bor_block_hash = sp1_zkvm::io::read::<FixedBytes<32>>();
     let state_sketch_bytes = sp1_zkvm::io::read::<Vec<u8>>();
     let l1_block_hash = sp1_zkvm::io::read::<FixedBytes<32>>();
 
@@ -34,17 +33,16 @@ pub fn main() {
         sigs,
         signers,
         bor_header,
-        bor_block_hash,
         state_sketch_bytes,
         l1_block_hash,
     };
     let prover = MilestoneProver::init(inputs);
-    prover.prove();
+    let outputs = prover.prove();
 
     // Encode the public values
     let bytes = PublicValuesStruct::abi_encode_packed(&PublicValuesStruct {
-        bor_block_hash,
-        l1_block_hash,
+        bor_block_hash: outputs.bor_block_hash,
+        l1_block_hash: outputs.l1_block_hash,
     });
 
     // Commit the values as bytes to be exposed to the verifier

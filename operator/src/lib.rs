@@ -52,7 +52,6 @@ impl ConsensusProver {
         stdin.write(&inputs.sigs);
         stdin.write(&inputs.signers);
         stdin.write(&inputs.bor_header);
-        stdin.write(&inputs.bor_block_hash);
         stdin.write(&inputs.state_sketch_bytes);
         stdin.write(&inputs.l1_block_hash);
 
