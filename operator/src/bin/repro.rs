@@ -65,10 +65,11 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let verifier_contract: Address = Address::from_str(a).unwrap();
     let caller_address: Address = address!("0000000000000000000000000000000000000000");
 
+    let tx_hash = "0xcf12ddc248d15f59cc7ccf8af558f7a7a87ee55f6e89ddb5afc3b5f2d688c906".to_string();
+    let milestone_end_block = 12912588;
+
     let tx = client
-        .fetch_tx_by_hash(
-            "0xf921c46e22c2ba2c966b645ca8cb40b9ac2ae76d32a44fd231d7243eef154ebf".to_string(),
-        )
+        .fetch_tx_by_hash(tx_hash)
         .await
         .expect("unable to fetch milestone tx");
 
@@ -94,7 +95,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     }
 
     // Use the host executor to fetch the required bor block
-    let bor_block_number = BlockNumberOrTag::Number(12911428);
+    let bor_block_number = BlockNumberOrTag::Number(milestone_end_block);
     let bor_rpc_url =
         std::env::var("BOR_RPC_URL").unwrap_or_else(|_| panic!("Missing BOR_RPC_URL in env"));
     let bor_provider = ReqwestProvider::new_http(Url::parse(&bor_rpc_url)?);
