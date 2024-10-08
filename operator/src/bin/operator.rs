@@ -12,7 +12,7 @@ use alloy_rpc_types::BlockNumberOrTag;
 use alloy_sol_types::{sol, SolCall, SolType};
 use reth_primitives::hex;
 
-use sp1_cc_client_executor::{io::EVMStateSketch, ClientExecutor, ContractInput};
+use sp1_cc_client_executor::ContractInput;
 use sp1_cc_host_executor::HostExecutor;
 use sp1_sdk::SP1ProofWithPublicValues;
 
@@ -24,6 +24,7 @@ use pos_consensus_proof_operator::{
 sol! {
     contract ConsensusProofVerifier {
         function verifyConsensusProof(bytes calldata _proofBytes, bytes32 bor_block_hash, bytes32 l1_block_hash) public view;
+        function verifyConsensusProof2(bytes calldata _proofBytes, bytes calldata _publicValues) public view;
         function getEncodedValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256);
     }
 }
@@ -55,10 +56,6 @@ async fn main() -> eyre::Result<()> {
     println!("Assembling data for generating proof...");
     let inputs: MilestoneProofInputs = generate_inputs(args).await?;
 
-    // let milestone_prover = MilestoneProver::init(inputs.clone());
-    // let outputs = milestone_prover.prove();
-    // println!("Public values: {:?}", outputs);
-
     println!("Starting to generate proof...");
     let proof = prover.generate_consensus_proof(inputs);
 
@@ -71,8 +68,11 @@ async fn main() -> eyre::Result<()> {
     prover.verify_consensus_proof(&proof);
     println!("Proof verified, sending for on-chain verification!");
 
-    send_proof_onchain(proof).await?;
-    println!("Successfully verified proof on-chain!");
+    send_proof_onchain(proof.clone()).await?;
+    println!("Successfully verified proof on-chain - 1!");
+
+    send_proof_onchain_2(proof).await?;
+    println!("Successfully verified proof on-chain - 2!");
 
     Ok(())
 }
@@ -80,7 +80,7 @@ async fn main() -> eyre::Result<()> {
 pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let client = PosClient::default();
 
-    let a: &str = "0xB07f2FdCBE8b2D9ca815e563B7C0E2F2bD28CbFC";
+    let a: &str = "0x01Eb85F73dA540C66CE1d4262BF7F80d5BA6CF89";
     let verifier_contract: Address = Address::from_str(a).unwrap();
     let caller_address: Address = address!("0000000000000000000000000000000000000000");
 
@@ -150,16 +150,6 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     // Now that we've executed all of the calls, get the `EVMStateSketch` from the host executor.
     let input = host_executor.finalize().await?;
     let state_sketch_bytes = bincode::serialize(&input)?;
-    // println!("state_sketch_bytes: {:?}", state_sketch_bytes);
-
-    // Check if we can sketch the state
-    // let state_sketch = bincode::deserialize::<EVMStateSketch>(&state_sketch_bytes).unwrap();
-
-    // Initialize the client executor with the state sketch.
-    // This step also validates all of the storage against the provided state root.
-    // let _executor = ClientExecutor::new(state_sketch).unwrap();
-
-    println!("tx_data: {:?}", tx.result.tx);
 
     Ok(MilestoneProofInputs {
         tx_data: tx.result.tx,
@@ -177,6 +167,27 @@ pub async fn send_proof_onchain(proof: SP1ProofWithPublicValues) -> eyre::Result
     // Setup the default contract client to interact with on-chain verifier
     let contract_client = ContractClient::default();
 
+    let a1 = alloy_primitives::Bytes::copy_from_slice(&proof.bytes());
+    let a2 = alloy_primitives::Bytes::copy_from_slice(&proof.public_values.to_vec());
+
+    // Construct the on-chain call and relay the proof to the contract.
+    let call_data = ConsensusProofVerifier::verifyConsensusProof2Call {
+        _proofBytes: a1,
+        _publicValues: a2,
+    }
+    .abi_encode();
+    let result = contract_client.send(call_data).await;
+    if result.is_err() {
+        println!("Error 1: {:?}", result.err().unwrap());
+    }
+
+    Ok(())
+}
+
+pub async fn send_proof_onchain_2(proof: SP1ProofWithPublicValues) -> eyre::Result<()> {
+    // Setup the default contract client to interact with on-chain verifier
+    let contract_client = ContractClient::default();
+
     // Decode the public values from the proof
     let vals = PublicValuesStruct::abi_decode(&proof.public_values.to_vec(), true).unwrap();
 
@@ -187,10 +198,11 @@ pub async fn send_proof_onchain(proof: SP1ProofWithPublicValues) -> eyre::Result
         l1_block_hash: vals.l1_block_hash,
     }
     .abi_encode();
-    contract_client
-        .send(call_data)
-        .await
-        .expect("failed to send proof on-chain");
+    let result = contract_client.send(call_data).await;
+
+    if result.is_err() {
+        println!("Error 2: {:?}", result.err().unwrap());
+    }
 
     Ok(())
 }

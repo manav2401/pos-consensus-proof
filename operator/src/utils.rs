@@ -10,7 +10,6 @@ use std::env;
 pub struct PosClient {
     heimdall_url: String,
     tendermint_url: String,
-    bor_url: String, // For now, pointing to a service which returns the rlp encoded header given a block number
     http_client: Client,
     headers: HeaderMap,
 }
@@ -20,7 +19,6 @@ impl Default for PosClient {
         let heimdall_url =
             env::var("HEIMDALL_REST_ENDPOINT").expect("HEIMDALL_REST_ENDPOINT not set");
         let tendermint_url = env::var("TENDERMINT_ENDPOINT").expect("TENDERMINT_ENDPOINT not set");
-        let bor_url = env::var("BOR_RPC").expect("BOR_RPC not set");
         let http_client = Client::new();
 
         let mut headers = HeaderMap::new();
@@ -32,7 +30,6 @@ impl Default for PosClient {
         Self {
             heimdall_url,
             tendermint_url,
-            bor_url,
             http_client,
             headers,
         }
@@ -49,7 +46,6 @@ impl PosClient {
         Self {
             heimdall_url,
             tendermint_url,
-            bor_url,
             http_client: Client::new(),
             headers,
         }
@@ -112,13 +108,5 @@ impl PosClient {
             .json::<ValidatorSetResponse>()
             .await?;
         Ok(response)
-    }
-
-    pub async fn fetch_bor_header(&self, number: u64) -> Result<String> {
-        let url = format!("{}/header?number={}", self.bor_url, number);
-        println!("Fetching bor header from: {}", url);
-        let response = self.http_client.get(url).send().await.unwrap();
-        let encoded_header = response.text().await.unwrap();
-        Ok(encoded_header)
     }
 }

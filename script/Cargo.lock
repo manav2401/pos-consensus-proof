@@ -78,9 +78,9 @@ checksum = "5c6cb57a04249c6480766f7f7cef5467412af1490f8d1e243141daddada3264f"
 
 [[package]]
 name = "alloy-chains"
-version = "0.1.36"
+version = "0.1.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94c225801d42099570d0674701dddd4142f0ef715282aeb5985042e2ec962df7"
+checksum = "609d6ef5716e94875b19b91faf33ef041baff373d3fff70531424f372d27bbd2"
 dependencies = [
  "alloy-rlp",
  "num_enum 0.7.3",
@@ -230,9 +230,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-rlp"
-version = "0.3.8"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26154390b1d205a4a7ac7352aa2eb4f81f391399d4e2f546fb81a2f8bb383f62"
+checksum = "a43b18702501396fa9bcdeecd533bc85fac75150d308fc0f6800a01e6234a003"
 dependencies = [
  "alloy-rlp-derive",
  "arrayvec",
@@ -424,9 +424,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-trie"
-version = "0.5.3"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a46c9c4fdccda7982e7928904bd85fe235a0404ee3d7e197fff13d61eac8b4f"
+checksum = "398a977d774db13446b8cead8cfa9517aebf9e03fc8a1512892dc1e03e70bb04"
 dependencies = [
  "alloy-primitives 0.8.5",
  "alloy-rlp",
@@ -5857,13 +5857,21 @@ dependencies = [
 [[package]]
 name = "sp1-cc-client-executor"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1-contract-call/?branch=main#b21343241a7ecc86276e8f5a04911e8670dd9183"
+source = "git+https://github.com/succinctlabs/sp1-contract-call/?branch=main#fcb6707df84c6646ff9c0a9044115cea7d956b78"
 dependencies = [
+ "alloy-primitives 0.8.5",
+ "alloy-rlp",
  "alloy-sol-types 0.8.5",
  "eyre",
+ "reth-chainspec",
+ "reth-errors",
+ "reth-ethereum-consensus",
  "reth-evm",
  "reth-evm-ethereum",
+ "reth-execution-types",
  "reth-primitives",
+ "reth-revm",
+ "reth-storage-errors",
  "revm",
  "revm-primitives",
  "rsp-client-executor",
@@ -5871,6 +5879,8 @@ dependencies = [
  "rsp-primitives",
  "rsp-witness-db",
  "serde",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

@@ -23,7 +23,7 @@ impl Default for ContractClient {
             .expect("CHAIN_ID not set")
             .parse::<u64>()
             .expect("CHAIN_ID not a valid u64");
-        let rpc_url = env::var("RPC_URL").expect("RPC_URL not set");
+        let rpc_url = env::var("ETH_RPC_URL").expect("ETH_RPC_URL not set");
         let mut private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY not set");
         // Strip the `0x` prefix from the private key (if present).
         if let Some(stripped) = private_key.strip_prefix("0x") {

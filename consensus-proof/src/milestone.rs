@@ -51,7 +51,7 @@ impl MilestoneProver {
     }
 
     pub fn prove(&self) -> MilestoneProofOutputs {
-        let a: &str = "0xB07f2FdCBE8b2D9ca815e563B7C0E2F2bD28CbFC";
+        let a: &str = "0x01Eb85F73dA540C66CE1d4262BF7F80d5BA6CF89";
         let verifier_contract: Address = Address::from_str(a).unwrap();
         let caller_address: Address = address!("0000000000000000000000000000000000000000");
 
