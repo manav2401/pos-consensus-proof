@@ -37,7 +37,7 @@ impl Default for PosClient {
 }
 
 impl PosClient {
-    pub fn new(heimdall_url: String, tendermint_url: String, bor_url: String) -> Self {
+    pub fn new(heimdall_url: String, tendermint_url: String) -> Self {
         let mut headers = HeaderMap::new();
         headers.insert(
             USER_AGENT,

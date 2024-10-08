@@ -3,9 +3,9 @@ name = "pos-consensus-proof-operator"
 version = "0.1.0"
 edition = "2021"
 
-# [[bin]]
-# name = "prove"
-# path = "src/bin/prove.rs"
+[[bin]]
+name = "repro"
+path = "src/bin/repro.rs"
 
 # [[bin]]
 # name = "vkey"
