@@ -1,5 +1,7 @@
 use pos_consensus_proof::milestone::MilestoneProofInputs;
-use sp1_sdk::{ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin, SP1VerifyingKey};
+use sp1_sdk::{
+    HashableKey, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin, SP1VerifyingKey,
+};
 
 pub mod contract;
 pub mod types;
@@ -55,6 +57,8 @@ impl ConsensusProver {
         stdin.write(&inputs.state_sketch_bytes);
         stdin.write(&inputs.l1_block_hash);
 
+        println!("Generating proof..., vk: {:?}", self.vkey.bytes32());
+
         // Generate the proof. Depending on SP1_PROVER env variable, this may be a mock, local or network proof.
         let proof = self
             .prover_client
@@ -68,6 +72,7 @@ impl ConsensusProver {
     }
 
     pub fn verify_consensus_proof(&self, proof: &SP1ProofWithPublicValues) {
+        println!("Verifying proof..., vk: {:?}", self.vkey.bytes32());
         self.prover_client
             .verify(proof, &self.vkey)
             .expect("Failed to verify proof.");

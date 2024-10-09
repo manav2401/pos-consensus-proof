@@ -1,6 +1,6 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
-use pos_consensus_proof::milestone::PublicValuesStruct;
+use pos_consensus_proof::milestone::ConsensusProofVerifier;
 use prost_types::Timestamp;
 use std::str::FromStr;
 use url::Url;
@@ -9,25 +9,13 @@ use alloy_primitives::FixedBytes;
 use alloy_primitives::{address, Address};
 use alloy_provider::ReqwestProvider;
 use alloy_rpc_types::BlockNumberOrTag;
-use alloy_sol_types::{sol, SolCall, SolType};
 use reth_primitives::hex;
 
 use sp1_cc_client_executor::ContractInput;
 use sp1_cc_host_executor::HostExecutor;
-use sp1_sdk::SP1ProofWithPublicValues;
 
 use pos_consensus_proof::{milestone::MilestoneProofInputs, types, types::heimdall_types};
-use pos_consensus_proof_operator::{
-    contract::ContractClient, types::Precommit, utils::PosClient, ConsensusProver,
-};
-
-sol! {
-    contract ConsensusProofVerifier {
-        function verifyConsensusProof(bytes calldata _proofBytes, bytes32 bor_block_hash, bytes32 l1_block_hash) public view;
-        function verifyConsensusProof2(bytes calldata _proofBytes, bytes calldata _publicValues) public view;
-        function getEncodedValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256);
-    }
-}
+use pos_consensus_proof_operator::{types::Precommit, utils::PosClient, ConsensusProver};
 
 /// The arguments for the command.
 #[derive(Parser, Debug)]
@@ -64,15 +52,6 @@ async fn main() -> eyre::Result<()> {
 
     proof.save("proof.bin").expect("saving proof failed");
     println!("Proof saved to proof.bin");
-
-    prover.verify_consensus_proof(&proof);
-    println!("Proof verified, sending for on-chain verification!");
-
-    send_proof_onchain(proof.clone()).await?;
-    println!("Successfully verified proof on-chain - 1!");
-
-    send_proof_onchain_2(proof).await?;
-    println!("Successfully verified proof on-chain - 2!");
 
     Ok(())
 }
@@ -161,50 +140,6 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
         state_sketch_bytes,
         l1_block_hash,
     })
-}
-
-pub async fn send_proof_onchain(proof: SP1ProofWithPublicValues) -> eyre::Result<()> {
-    // Setup the default contract client to interact with on-chain verifier
-    let contract_client = ContractClient::default();
-
-    let a1 = alloy_primitives::Bytes::copy_from_slice(&proof.bytes());
-    let a2 = alloy_primitives::Bytes::copy_from_slice(&proof.public_values.to_vec());
-
-    // Construct the on-chain call and relay the proof to the contract.
-    let call_data = ConsensusProofVerifier::verifyConsensusProof2Call {
-        _proofBytes: a1,
-        _publicValues: a2,
-    }
-    .abi_encode();
-    let result = contract_client.send(call_data).await;
-    if result.is_err() {
-        println!("Error 1: {:?}", result.err().unwrap());
-    }
-
-    Ok(())
-}
-
-pub async fn send_proof_onchain_2(proof: SP1ProofWithPublicValues) -> eyre::Result<()> {
-    // Setup the default contract client to interact with on-chain verifier
-    let contract_client = ContractClient::default();
-
-    // Decode the public values from the proof
-    let vals = PublicValuesStruct::abi_decode(&proof.public_values.to_vec(), true).unwrap();
-
-    // Construct the on-chain call and relay the proof to the contract.
-    let call_data = ConsensusProofVerifier::verifyConsensusProofCall {
-        _proofBytes: proof.bytes().into(),
-        bor_block_hash: vals.bor_block_hash,
-        l1_block_hash: vals.l1_block_hash,
-    }
-    .abi_encode();
-    let result = contract_client.send(call_data).await;
-
-    if result.is_err() {
-        println!("Error 2: {:?}", result.err().unwrap());
-    }
-
-    Ok(())
 }
 
 pub fn serialize_precommit(precommit: &Precommit) -> Vec<u8> {
