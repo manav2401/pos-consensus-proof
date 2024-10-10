@@ -83,10 +83,11 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let mut sigs: Vec<String> = [].to_vec();
     let mut signers: Vec<Address> = [].to_vec();
 
+    let heimdall_chain_id = std::env::var("HEIMDALL_CHAIN_ID").expect("HEIMDALL_CHAIN_ID not set");
     for precommit in block_precommits.iter() {
         // Only add if the side tx result is non empty
         if precommit.side_tx_results.is_some() {
-            let serialized_precommit = serialize_precommit(precommit);
+            let serialized_precommit = serialize_precommit(precommit, &heimdall_chain_id);
             precommits.push(serialized_precommit);
             sigs.push(precommit.signature.clone());
             signers.push(Address::from_str(&precommit.validator_address).unwrap());
@@ -151,7 +152,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     })
 }
 
-pub fn serialize_precommit(precommit: &Precommit) -> Vec<u8> {
+pub fn serialize_precommit(precommit: &Precommit, heimdall_chain_id: &String) -> Vec<u8> {
     let timestamp = Timestamp::from_str(&precommit.timestamp).unwrap();
     let parts_header = heimdall_types::CanonicalPartSetHeader {
         total: precommit.block_id.parts.total,
@@ -178,7 +179,7 @@ pub fn serialize_precommit(precommit: &Precommit) -> Vec<u8> {
         round: u64::from_str(&precommit.round).unwrap(),
         block_id,
         timestamp: Some(timestamp),
-        chain_id: "heimdall-80002".to_string(),
+        chain_id: heimdall_chain_id.to_string(),
         data: [].to_vec(),
         side_tx_results: Some(side_tx),
     };

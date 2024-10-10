@@ -91,8 +91,4 @@ contract ConsensusProofVerifier {
         bytes memory publicValues = abi.encodePacked(bor_block_hash, l1_block_hash);
         ISP1Verifier(verifier).verifyProof(consensusProofVKey, publicValues, _proofBytes);
     }
-
-    function verifyConsensusProof2(bytes calldata _proofBytes, bytes calldata _publicValues) public view {
-        ISP1Verifier(verifier).verifyProof(consensusProofVKey, _publicValues, _proofBytes);
-    }
 }
