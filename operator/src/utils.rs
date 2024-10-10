@@ -109,4 +109,26 @@ impl PosClient {
             .await?;
         Ok(response)
     }
+
+    pub async fn fetch_validator_set_by_height(&self, height: u64) -> Result<ValidatorSetResponse> {
+        let url: String = format!(
+            "{}/staking/validator-set?height={}",
+            self.heimdall_url, height
+        );
+        println!("Fetching validator set at height from: {}", url);
+        let response = self
+            .http_client
+            .get(url)
+            .headers(self.headers.clone())
+            .send()
+            .await?;
+        let json_response = response.json::<ValidatorSetResponse>().await;
+        if json_response.is_ok() {
+            Ok(json_response?)
+        } else {
+            println!("Failed to fetch validator set at height, please use an archive node. Using latest block instead");
+            let response = self.fetch_validator_set().await?;
+            Ok(response)
+        }
+    }
 }

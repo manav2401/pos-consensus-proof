@@ -97,8 +97,5 @@ pub struct Validators {
 #[derive(Debug, Deserialize)]
 
 pub struct Validator {
-    #[serde(rename = "ID")]
-    pub id: u64,
-    pub power: u64,
-    pub signer: String,
+    pub last_updated: String,
 }

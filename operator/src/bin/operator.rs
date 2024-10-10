@@ -1,9 +1,12 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
 use pos_consensus_proof::milestone::ConsensusProofVerifier;
+use pos_consensus_proof_operator::types::Validator;
 use prost_types::Timestamp;
 use std::str::FromStr;
 use url::Url;
+
+use ethers::providers::{Http, Middleware, Provider};
 
 use alloy_primitives::FixedBytes;
 use alloy_primitives::{address, Address};
@@ -26,9 +29,6 @@ pub struct Args {
 
     #[clap(long)]
     milestone_hash: String,
-
-    #[clap(long)]
-    l1_block_number: u64,
 }
 
 #[tokio::main]
@@ -71,7 +71,6 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
         .fetch_tx_by_hash(args.milestone_hash)
         .await
         .expect("unable to fetch milestone tx");
-    // println!("tx: {:?}", tx.result.tx);
 
     let number: u64 = tx.result.height.parse().unwrap();
     let block = client
@@ -102,14 +101,24 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let bor_host_executor = HostExecutor::new(bor_provider.clone(), bor_block_number).await?;
     let bor_header = bor_host_executor.header;
 
-    // Which block transactions are executed on.
-    let block_number = BlockNumberOrTag::Number(args.l1_block_number);
+    // Fetch the validator set
+    let validator_set = client
+        .fetch_validator_set_by_height(number + 2)
+        .await
+        .expect("unable to fetch validator set");
+
+    let rpc_url =
+        std::env::var("ETH_RPC_URL").unwrap_or_else(|_| panic!("Missing ETH_RPC_URL in env"));
+
+    // Calculate the best l1 block to choose from the last_updated field in validator set
+    let l1_block_number = find_best_l1_block(validator_set.result.validators, &rpc_url).await;
+
+    // The L1 block number against which the transaction is executed
+    let block_number = BlockNumberOrTag::Number(l1_block_number);
 
     // Prepare the host executor.
     //
     // Use `ETH_RPC_URL` to get all of the necessary state for the smart contract call.
-    let rpc_url =
-        std::env::var("ETH_RPC_URL").unwrap_or_else(|_| panic!("Missing ETH_RPC_URL in env"));
     let provider = ReqwestProvider::new_http(Url::parse(&rpc_url)?);
     let mut host_executor = HostExecutor::new(provider.clone(), block_number).await?;
 
@@ -174,4 +183,30 @@ pub fn serialize_precommit(precommit: &Precommit) -> Vec<u8> {
         side_tx_results: Some(side_tx),
     };
     types::serialize_precommit(&vote)
+}
+
+async fn find_best_l1_block(validator_set: Vec<Validator>, rpc_url: &str) -> u64 {
+    let mut max_block = 0;
+    for validator in validator_set.iter() {
+        let last_updated = u64::from_str(&validator.last_updated).unwrap();
+        // Block number is multipled with 100k to get the last updated value in heimdall
+        let block_number = last_updated / 100000;
+        if block_number > max_block {
+            max_block = block_number;
+        }
+    }
+
+    // Fetch the latest l1 block
+    let provider = Provider::<Http>::try_from(rpc_url).unwrap();
+    let latest_block = provider.get_block_number().await.unwrap().as_u64();
+
+    // Because we can only access last 256 blocks in solidity, if the max_block is beyond that, use
+    // the latest one.
+    if max_block < latest_block - 256 {
+        println!("Choosing latest block as last updated block is beyond 256");
+        max_block = latest_block;
+    }
+
+    // TODO: Make sure no staking event happened after this block
+    max_block
 }
