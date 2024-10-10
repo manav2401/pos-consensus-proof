@@ -1,3 +1,4 @@
+use alloy::hex::NIL;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
 use pos_consensus_proof::milestone::ConsensusProofVerifier;
@@ -12,7 +13,7 @@ use alloy_primitives::FixedBytes;
 use alloy_primitives::{address, Address};
 use alloy_provider::ReqwestProvider;
 use alloy_rpc_types::{BlockId, BlockNumberOrTag};
-use reth_primitives::hex;
+use reth_primitives::{hex, Header};
 
 use sp1_cc_client_executor::ContractInput;
 use sp1_cc_host_executor::HostExecutor;
@@ -158,11 +159,18 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let prev_bor_block_hash = response.lastVerifiedBorBlockHash;
     // let prev_bor_block_hash = BlockHash::from_slice(a.as_slice());
 
-    // Use the host executor to fetch the required prev bor block by hash
-    let bor_host_executor =
-        HostExecutor::new_with_blockid(bor_provider.clone(), BlockId::hash(prev_bor_block_hash))
-            .await?;
-    let prev_bor_header = bor_host_executor.header;
+    // If the hash is zero, use a default header
+    let mut prev_bor_header = Header::default();
+
+    if !prev_bor_block_hash.is_zero() {
+        // Use the host executor to fetch the required prev bor block by hash
+        let bor_host_executor = HostExecutor::new_with_blockid(
+            bor_provider.clone(),
+            BlockId::hash(prev_bor_block_hash),
+        )
+        .await?;
+        prev_bor_header = bor_host_executor.header;
+    }
 
     Ok(MilestoneProofInputs {
         tx_data: tx.result.tx,
