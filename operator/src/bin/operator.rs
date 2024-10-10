@@ -12,7 +12,7 @@ use alloy_primitives::FixedBytes;
 use alloy_primitives::{address, Address};
 use alloy_provider::ReqwestProvider;
 use alloy_rpc_types::BlockNumberOrTag;
-use reth_primitives::hex;
+use reth_primitives::{hex, Header};
 
 use sp1_cc_client_executor::ContractInput;
 use sp1_cc_host_executor::HostExecutor;
@@ -59,10 +59,6 @@ async fn main() -> eyre::Result<()> {
 pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let client = PosClient::default();
 
-    let a: &str = "0x01Eb85F73dA540C66CE1d4262BF7F80d5BA6CF89";
-    let verifier_contract: Address = Address::from_str(a).unwrap();
-    let caller_address: Address = address!("0000000000000000000000000000000000000000");
-
     let milestone = client
         .fetch_milestone_by_id(args.milestone_id)
         .await
@@ -96,11 +92,10 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
 
     // Use the host executor to fetch the required bor block
     let bor_block_number = BlockNumberOrTag::Number(milestone.result.end_block);
-    let bor_rpc_url =
-        std::env::var("BOR_RPC_URL").unwrap_or_else(|_| panic!("Missing BOR_RPC_URL in env"));
-    let bor_provider = ReqwestProvider::new_http(Url::parse(&bor_rpc_url)?);
-    let bor_host_executor = HostExecutor::new(bor_provider.clone(), bor_block_number).await?;
-    let bor_header = bor_host_executor.header;
+    let bor_header = client
+        .fetch_bor_header_by_number(bor_block_number)
+        .await
+        .unwrap();
 
     // Fetch the validator set
     let validator_set = client
@@ -117,6 +112,11 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     // The L1 block number against which the transaction is executed
     let block_number = BlockNumberOrTag::Number(l1_block_number);
 
+    // Read the verifier contract
+    let verifier = std::env::var("VERIFIER").expect("VERIFIER not set");
+    let verifier_contract: Address =
+        Address::from_str(&verifier).expect("invalid verifier address");
+
     // Prepare the host executor.
     //
     // Use `ETH_RPC_URL` to get all of the necessary state for the smart contract call.
@@ -131,7 +131,17 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let _response: ConsensusProofVerifier::getEncodedValidatorInfoReturn = host_executor
         .execute(ContractInput {
             contract_address: verifier_contract,
-            caller_address,
+            caller_address: address!("0000000000000000000000000000000000000000"),
+            calldata: call,
+        })
+        .await?;
+
+    // Make another call to fetch the last verified bor block hash
+    let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
+    let response: ConsensusProofVerifier::lastVerifiedBorBlockHashReturn = host_executor
+        .execute(ContractInput {
+            contract_address: verifier_contract,
+            caller_address: address!("0000000000000000000000000000000000000000"),
             calldata: call,
         })
         .await?;
@@ -140,6 +150,33 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let input = host_executor.finalize().await?;
     let state_sketch_bytes = bincode::serialize(&input)?;
 
+    // Fetch the bor block again the block hash read
+    let prev_bor_block_hash = response.lastVerifiedBorBlockHash;
+
+    // If the hash is zero, use a default header
+    let mut prev_bor_header = Header::default();
+
+    if !prev_bor_block_hash.is_zero() {
+        let prev_bor_block_number = client
+            .fetch_bor_number_by_hash(prev_bor_block_hash)
+            .await
+            .unwrap();
+
+        // Fetch the bor header using the number read
+        prev_bor_header = client
+            .fetch_bor_header_by_number(BlockNumberOrTag::Number(prev_bor_block_number))
+            .await
+            .unwrap();
+
+        // Check if the hash matches with the original one because a mismatch can happen if block
+        // read is not canonical
+        assert_eq!(
+            prev_bor_header.hash_slow(),
+            prev_bor_block_hash,
+            "prev bor block hash mismatch"
+        );
+    }
+
     Ok(MilestoneProofInputs {
         tx_data: tx.result.tx,
         tx_hash: FixedBytes::from_str(&tx.result.hash).unwrap(),
@@ -147,6 +184,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
         sigs,
         signers,
         bor_header,
+        prev_bor_header,
         state_sketch_bytes,
         l1_block_hash,
     })

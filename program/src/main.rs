@@ -32,7 +32,8 @@ pub fn main() {
         precommits,
         sigs,
         signers,
-        bor_header,
+        bor_header: bor_header.clone(),
+        prev_bor_header: bor_header,
         state_sketch_bytes,
         l1_block_hash,
     };
