@@ -50,8 +50,8 @@ alloy-rpc-types = { version = "0.3", default-features = false, features = [
 # sp1
 sp1-zkvm = "2.0.0"
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v2.0.0" }
-sp1-cc-client-executor = { git = "https://github.com/manav2401/sp1-contract-call/", branch = "main" }
-sp1-cc-host-executor = { git = "https://github.com/manav2401/sp1-contract-call/", branch = "main" }
+sp1-cc-client-executor = { git = "https://github.com/succinctlabs/sp1-contract-call/", branch = "main" }
+sp1-cc-host-executor = { git = "https://github.com/succinctlabs/sp1-contract-call/", branch = "main" }
 
 [patch.crates-io]
 crypto-bigint = { git = "https://github.com/sp1-patches/RustCrypto-bigint", branch = "patch-v0.5.5" }

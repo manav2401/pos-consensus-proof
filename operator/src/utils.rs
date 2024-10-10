@@ -1,15 +1,24 @@
 use crate::types::{BlockResponse, MilestoneResponse, TxResponse, ValidatorSetResponse};
 
+use alloy_primitives::FixedBytes;
+use alloy_provider::ReqwestProvider;
+use alloy_rpc_types::BlockNumberOrTag;
 use anyhow::Result;
+use ethers::providers::{Http, Middleware, Provider};
+use ethers::types::{BlockId, H256};
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
+use reth_primitives::Header;
 use std::env;
+use url::Url;
 
+use sp1_cc_host_executor::HostExecutor;
 // PosClient holds a http client instance along with endpoints for heimdall rest-server,
 // tendermint rpc server and bor's rpc server to interact with.
 pub struct PosClient {
     heimdall_url: String,
     tendermint_url: String,
+    bor_rpc_url: String,
     http_client: Client,
     headers: HeaderMap,
 }
@@ -20,6 +29,7 @@ impl Default for PosClient {
             env::var("HEIMDALL_REST_ENDPOINT").expect("HEIMDALL_REST_ENDPOINT not set");
         let tendermint_url = env::var("TENDERMINT_ENDPOINT").expect("TENDERMINT_ENDPOINT not set");
         let http_client = Client::new();
+        let bor_rpc_url = env::var("BOR_RPC_URL").expect("BOR_RPC_URL not set");
 
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -30,6 +40,7 @@ impl Default for PosClient {
         Self {
             heimdall_url,
             tendermint_url,
+            bor_rpc_url,
             http_client,
             headers,
         }
@@ -37,7 +48,7 @@ impl Default for PosClient {
 }
 
 impl PosClient {
-    pub fn new(heimdall_url: String, tendermint_url: String) -> Self {
+    pub fn new(heimdall_url: String, tendermint_url: String, bor_rpc_url: String) -> Self {
         let mut headers = HeaderMap::new();
         headers.insert(
             USER_AGENT,
@@ -46,6 +57,7 @@ impl PosClient {
         Self {
             heimdall_url,
             tendermint_url,
+            bor_rpc_url,
             http_client: Client::new(),
             headers,
         }
@@ -96,6 +108,7 @@ impl PosClient {
         Ok(response)
     }
 
+    /// Fetches the validator set from heimdall
     pub async fn fetch_validator_set(&self) -> Result<ValidatorSetResponse> {
         let url: String = format!("{}/staking/validator-set", self.heimdall_url);
         println!("Fetching validator set from: {}", url);
@@ -110,6 +123,7 @@ impl PosClient {
         Ok(response)
     }
 
+    /// Fetches the validator set from heimdall at a specific block height
     pub async fn fetch_validator_set_by_height(&self, height: u64) -> Result<ValidatorSetResponse> {
         let url: String = format!(
             "{}/staking/validator-set?height={}",
@@ -130,5 +144,29 @@ impl PosClient {
             let response = self.fetch_validator_set().await?;
             Ok(response)
         }
+    }
+
+    /// Fetches a bor block header (of type `reth-primitives::Header`) by number
+    pub async fn fetch_bor_header_by_number(
+        &self,
+        block_number: BlockNumberOrTag,
+    ) -> Result<Header> {
+        // Use the host executor to fetch the required bor block
+        let bor_provider = ReqwestProvider::new_http(Url::parse(&self.bor_rpc_url)?);
+        let bor_host_executor = HostExecutor::new(bor_provider.clone(), block_number)
+            .await
+            .expect("unable to fetch bor block by number");
+        Ok(bor_host_executor.header)
+    }
+
+    /// Fetches a bor block number by hash
+    pub async fn fetch_bor_number_by_hash(&self, block_hash: FixedBytes<32>) -> Result<u64> {
+        let provider = Provider::<Http>::try_from(self.bor_rpc_url.clone())?;
+        let hash: H256 = H256::from_slice(block_hash.as_ref());
+        let block = provider
+            .get_block(BlockId::Hash(hash))
+            .await?
+            .expect("unable to fetch bor block by hash");
+        Ok(block.number.unwrap().as_u64())
     }
 }
