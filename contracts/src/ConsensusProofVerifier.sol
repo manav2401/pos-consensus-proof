@@ -30,6 +30,9 @@ contract ConsensusProofVerifier {
     /// @notice The address of the PoS Stake Manager contract.
     address public posStakeManager;
 
+    /// @notice The last verified bor block hash.
+    bytes32 public lastVerifiedBorBlockHash;
+
     constructor(address _verifier, bytes32 _consensusProofVKey, address _posStakeManager) {
         verifier = _verifier;
         consensusProofVKey = _consensusProofVKey;
@@ -83,12 +86,15 @@ contract ConsensusProofVerifier {
 
     /// @notice The entrypoint for the verifier.
     /// @param _proofBytes The encoded proof.
+    /// @param bor_block_hash The bor block hash to be verified.
+    /// @param l1_block_hash The l1 block hash for anchor.
     function verifyConsensusProof(
         bytes calldata _proofBytes, 
         bytes32 bor_block_hash, 
         bytes32 l1_block_hash
-    ) public view {
+    ) public {
         bytes memory publicValues = abi.encodePacked(bor_block_hash, l1_block_hash);
         ISP1Verifier(verifier).verifyProof(consensusProofVKey, publicValues, _proofBytes);
+        lastVerifiedBorBlockHash = bor_block_hash;
     }
 }
