@@ -13,6 +13,7 @@ path = "src/bin/verify.rs"
 
 [dependencies]
 pos-consensus-proof = { path = "../consensus-proof" }
+common = { path = "../common"}
 
 serde_json.workspace = true
 serde.workspace = true
