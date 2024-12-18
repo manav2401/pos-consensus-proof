@@ -1,6 +1,6 @@
 {
     "rust-analyzer.linkedProjects": [
-        "program/Cargo.toml",
+        "common/Cargo.toml",
         "consensus-proof/Cargo.toml",
         "operator/Cargo.toml",
     ],

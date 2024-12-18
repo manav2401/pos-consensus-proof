@@ -1,15 +1,15 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
-use pos_consensus_proof::milestone::ConsensusProofVerifier;
-use pos_consensus_proof_operator::types::Validator;
+
 use prost_types::Timestamp;
+use sp1_sdk::SP1ProofWithPublicValues;
+use std::path::PathBuf;
 use std::str::FromStr;
 use url::Url;
 
 use ethers::providers::{Http, Middleware, Provider};
 
-use alloy_primitives::FixedBytes;
-use alloy_primitives::{address, Address};
+use alloy_primitives::{Address, FixedBytes};
 use alloy_provider::ReqwestProvider;
 use alloy_rpc_types::BlockNumberOrTag;
 use reth_primitives::{hex, Header};
@@ -17,8 +17,14 @@ use reth_primitives::{hex, Header};
 use sp1_cc_client_executor::ContractInput;
 use sp1_cc_host_executor::HostExecutor;
 
-use pos_consensus_proof::{milestone::MilestoneProofInputs, types, types::heimdall_types};
-use pos_consensus_proof_operator::{types::Precommit, utils::PosClient, ConsensusProver};
+use common::CALLER;
+use common::{ConsensusProofVerifier, PoSConsensusInput};
+use pos_consensus_proof::{types, types::heimdall_types};
+use pos_consensus_proof_operator::{
+    types::{Precommit, Validator},
+    utils::PosClient,
+    ConsensusProver,
+};
 
 /// The arguments for the command.
 #[derive(Parser, Debug)]
@@ -29,6 +35,21 @@ pub struct Args {
 
     #[clap(long)]
     milestone_hash: String,
+
+    #[clap(long)]
+    l1_block_number: u64,
+
+    #[clap(long)]
+    prev_l2_block_number: u64,
+
+    #[clap(long)]
+    new_l2_block_number: u64,
+
+    #[arg(long, default_value_t = false)]
+    prove: bool,
+
+    #[clap(long)]
+    proof_type: String,
 }
 
 #[tokio::main]
@@ -36,33 +57,85 @@ async fn main() -> eyre::Result<()> {
     dotenv::dotenv().ok();
 
     let args = Args::parse();
+    let prove = args.prove;
+    let prev_l2_block_number = args.prev_l2_block_number;
+    let new_l2_block_number = args.new_l2_block_number;
+    let mut proof_type = args.proof_type.clone();
+
+    let l2_chain_id = std::env::var("L2_CHAIN_ID").expect("L2_CHAIN_ID not set");
 
     // Setup the logger.
     sp1_sdk::utils::setup_logger();
     let prover = ConsensusProver::new();
 
     println!("Assembling data for generating proof...");
-    let inputs: MilestoneProofInputs = generate_inputs(args).await?;
+    let inputs = generate_inputs(args).await?;
 
-    println!("Starting to generate proof...");
-    let proof = prover.generate_consensus_proof(inputs);
+    println!("Executing the program...");
+    prover.execute(inputs.clone());
 
-    println!("Successfully generated proof: {:?}", proof.bytes());
-    println!("Public values: {:?}", proof.public_values.to_vec());
-
-    proof.save("proof.bin").expect("saving proof failed");
-    println!("Proof saved to proof.bin");
+    if prove {
+        if proof_type.is_empty() {
+            println!("No proof type provided, defaulting to compressed");
+            proof_type = "compressed".to_string();
+        }
+        if proof_type.eq("compressed") {
+            let proof = prover.generate_consensus_proof_compressed(inputs);
+            prover.verify_consensus_proof(&proof);
+            save_proof(
+                proof,
+                l2_chain_id.as_str(),
+                format!(
+                    "../../proof/chain{}/consensus_block_{}_to_{}.bin",
+                    l2_chain_id.as_str(),
+                    prev_l2_block_number,
+                    new_l2_block_number
+                ),
+            );
+        } else if proof_type == "plonk" {
+            let proof = prover.generate_consensus_proof_plonk(inputs);
+            prover.verify_consensus_proof(&proof);
+            save_proof(
+                proof,
+                l2_chain_id.as_str(),
+                format!(
+                    "../../proof/chain{}/consensus_block_{}_to_{}.bin",
+                    l2_chain_id.as_str(),
+                    prev_l2_block_number,
+                    new_l2_block_number
+                ),
+            );
+        } else {
+            println!("Invalid proof type provided")
+        }
+    } else {
+        println!("Proof generation skipped");
+    }
 
     Ok(())
 }
 
-pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
+pub fn save_proof(proof: SP1ProofWithPublicValues, l2_chain_id: &str, name: String) {
+    // Create path to save the proof
+    let fixture_path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("../../proof/chain{}", l2_chain_id));
+    std::fs::create_dir_all(&fixture_path).expect("failed to create fixture path");
+
+    match proof.save(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(name)) {
+        Ok(_) => println!("Proof saved successfully."),
+        Err(e) => eprintln!("Failed to save proof: {}", e),
+    }
+}
+
+pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     let client = PosClient::default();
 
     let milestone = client
         .fetch_milestone_by_id(args.milestone_id)
         .await
         .expect("unable to fetch milestone");
+    assert_eq!(milestone.result.end_block, args.new_l2_block_number);
+
     let tx = client
         .fetch_tx_by_hash(args.milestone_hash)
         .await
@@ -98,16 +171,18 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
         .unwrap();
 
     // Fetch the validator set
-    let validator_set = client
-        .fetch_validator_set_by_height(number + 2)
-        .await
-        .expect("unable to fetch validator set");
+    // let validator_set = client
+    //     .fetch_validator_set_by_height(number + 2)
+    //     .await
+    //     .expect("unable to fetch validator set");
 
-    let rpc_url =
-        std::env::var("ETH_RPC_URL").unwrap_or_else(|_| panic!("Missing ETH_RPC_URL in env"));
+    let chain_id = std::env::var("L1_CHAIN_ID").expect("L1_CHAIN_ID not set");
+    let eth_rpc = format!("RPC_{}", chain_id);
+    let rpc_url = std::env::var(eth_rpc).unwrap_or_else(|_| panic!("Missing eth rpc url in env"));
 
     // Calculate the best l1 block to choose from the last_updated field in validator set
-    let l1_block_number = find_best_l1_block(validator_set.result.validators, &rpc_url).await;
+    // let l1_block_number = find_best_l1_block(validator_set.result.validators, &rpc_url).await;
+    let l1_block_number = args.l1_block_number;
 
     // The L1 block number against which the transaction is executed
     let block_number = BlockNumberOrTag::Number(l1_block_number);
@@ -131,7 +206,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let _response: ConsensusProofVerifier::getEncodedValidatorInfoReturn = host_executor
         .execute(ContractInput {
             contract_address: verifier_contract,
-            caller_address: address!("0000000000000000000000000000000000000000"),
+            caller_address: CALLER,
             calldata: call,
         })
         .await?;
@@ -141,7 +216,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
     let response: ConsensusProofVerifier::lastVerifiedBorBlockHashReturn = host_executor
         .execute(ContractInput {
             contract_address: verifier_contract,
-            caller_address: address!("0000000000000000000000000000000000000000"),
+            caller_address: CALLER,
             calldata: call,
         })
         .await?;
@@ -161,6 +236,10 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
             .fetch_bor_number_by_hash(prev_bor_block_hash)
             .await
             .unwrap();
+        assert_eq!(
+            prev_bor_block_number, args.prev_l2_block_number,
+            "prev bor block number mismatch with the one present in contract"
+        );
 
         // Fetch the bor header using the number read
         prev_bor_header = client
@@ -177,7 +256,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
         );
     }
 
-    Ok(MilestoneProofInputs {
+    Ok(PoSConsensusInput {
         tx_data: tx.result.tx,
         tx_hash: FixedBytes::from_str(&tx.result.hash).unwrap(),
         precommits,
@@ -187,6 +266,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<MilestoneProofInputs> {
         prev_bor_header,
         state_sketch_bytes,
         l1_block_hash,
+        stake_manager_address: verifier_contract, // verifier interacts with stake manager
     })
 }
 
@@ -239,16 +319,16 @@ async fn find_best_l1_block(validator_set: Vec<Validator>, rpc_url: &str) -> u64
     let provider = Provider::<Http>::try_from(rpc_url).unwrap();
     let latest_block = provider.get_block_number().await.unwrap().as_u64();
 
-    println!("Got latest block: {}", latest_block);
-
     // Because we can only access last 256 blocks in solidity, if the max_block is beyond that, use
     // the latest one.
     if max_block < latest_block - 256 {
-        println!("Choosing latest block as last updated block is beyond 256");
         max_block = latest_block;
     }
 
-    println!("Choosing L1 block number: {}", max_block);
+    println!(
+        "Choosing L1 block to generate proof against: {}, latest: {}",
+        max_block, latest_block
+    );
 
     // TODO: Make sure no staking event happened after this block
     max_block

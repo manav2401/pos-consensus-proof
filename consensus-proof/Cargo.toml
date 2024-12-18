@@ -18,7 +18,12 @@ reth-primitives.workspace = true
 alloy-primitives.workspace = true
 alloy-rlp.workspace = true
 alloy-sol-types.workspace = true
+
+# sp1
+sp1-zkvm.workspace = true
 sp1-cc-client-executor.workspace = true
+
+common = { path = "../common"}
 
 [build-dependencies]
 prost-build = "0.13.1"

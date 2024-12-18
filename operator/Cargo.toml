@@ -13,6 +13,7 @@ path = "src/bin/verify.rs"
 
 [dependencies]
 pos-consensus-proof = { path = "../consensus-proof" }
+common = { path = "../common"}
 
 serde_json.workspace = true
 serde.workspace = true
@@ -45,5 +46,4 @@ alloy.workspace = true
 alloy-rpc-types.workspace = true
 
 [build-dependencies]
-prost-build = "0.13.1"
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", tag = "v2.0.0" }
+sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", tag = "v3.4.0" }
