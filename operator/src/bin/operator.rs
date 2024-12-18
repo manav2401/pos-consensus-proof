@@ -75,7 +75,7 @@ async fn main() -> eyre::Result<()> {
     prover.execute(inputs.clone());
 
     if prove {
-        if proof_type.eq("") {
+        if proof_type.is_empty() {
             println!("No proof type provided, defaulting to compressed");
             proof_type = "compressed".to_string();
         }
