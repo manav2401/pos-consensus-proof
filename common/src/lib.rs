@@ -27,7 +27,7 @@ pub struct PoSConsensusInput {
     // l1 related data
     pub state_sketch_bytes: Vec<u8>,
     pub l1_block_hash: B256,
-    pub stake_manager_address: Address,
+    pub stake_info_address: Address,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,7 +35,7 @@ pub struct PoSConsensusCommit {
     pub prev_bor_hash: B256,
     pub new_bor_hash: B256,
     pub l1_block_hash: B256,
-    pub stake_manager_address: Address,
+    pub stake_info_address: Address,
 }
 
 sol! {

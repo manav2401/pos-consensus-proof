@@ -42,7 +42,7 @@ pub fn prove(input: PoSConsensusInput) -> PoSConsensusCommit {
     // active validator's info from L1.
     let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
     let call_input = ContractInput {
-        contract_address: input.stake_manager_address,
+        contract_address: input.stake_info_address,
         caller_address: CALLER,
         calldata: call.clone(),
     };
@@ -68,7 +68,7 @@ pub fn prove(input: PoSConsensusInput) -> PoSConsensusCommit {
     // last verified bor block hash.
     let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
     let call_input = ContractInput {
-        contract_address: input.stake_manager_address,
+        contract_address: input.stake_info_address,
         caller_address: CALLER,
         calldata: call.clone(),
     };
@@ -132,6 +132,6 @@ pub fn prove(input: PoSConsensusInput) -> PoSConsensusCommit {
         prev_bor_hash,
         new_bor_hash: bor_block_hash,
         l1_block_hash: input.l1_block_hash,
-        stake_manager_address: input.stake_manager_address,
+        stake_info_address: input.stake_info_address,
     }
 }

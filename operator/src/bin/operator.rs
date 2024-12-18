@@ -187,10 +187,10 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     // The L1 block number against which the transaction is executed
     let block_number = BlockNumberOrTag::Number(l1_block_number);
 
-    // Read the verifier contract
-    let verifier = std::env::var("VERIFIER").expect("VERIFIER not set");
-    let verifier_contract: Address =
-        Address::from_str(&verifier).expect("invalid verifier address");
+    // Read the stake info contract
+    let stake_info_address_str = std::env::var("L1_STAKE_INFO").expect("L1_STAKE_INFO not set");
+    let stake_info_address: Address =
+        Address::from_str(&stake_info_address_str).expect("Invalid L1_STAKE_INFO address");
 
     // Prepare the host executor.
     //
@@ -205,7 +205,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
     let _response: ConsensusProofVerifier::getEncodedValidatorInfoReturn = host_executor
         .execute(ContractInput {
-            contract_address: verifier_contract,
+            contract_address: stake_info_address,
             caller_address: CALLER,
             calldata: call,
         })
@@ -215,7 +215,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
     let response: ConsensusProofVerifier::lastVerifiedBorBlockHashReturn = host_executor
         .execute(ContractInput {
-            contract_address: verifier_contract,
+            contract_address: stake_info_address,
             caller_address: CALLER,
             calldata: call,
         })
@@ -266,7 +266,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
         prev_bor_header,
         state_sketch_bytes,
         l1_block_hash,
-        stake_manager_address: verifier_contract, // verifier interacts with stake manager
+        stake_info_address, // verifier interacts with stake manager
     })
 }
 

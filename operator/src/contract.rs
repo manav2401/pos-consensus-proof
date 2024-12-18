@@ -29,7 +29,7 @@ impl Default for ContractClient {
         if let Some(stripped) = private_key.strip_prefix("0x") {
             private_key = stripped.to_string();
         }
-        let contract = env::var("VERIFIER").expect("VERIFIER not set");
+        let contract = env::var("L1_VERIFIER").expect("L1_VERIFIER not set");
 
         Self::new(chain_id, &rpc_url, &private_key, &contract)
             .expect("Failed to create ContractClient")
