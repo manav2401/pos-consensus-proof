@@ -37,9 +37,6 @@ pub struct Args {
     milestone_hash: String,
 
     #[clap(long)]
-    l1_block_number: u64,
-
-    #[clap(long)]
     prev_l2_block_number: u64,
 
     #[clap(long)]
@@ -171,18 +168,17 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
         .unwrap();
 
     // Fetch the validator set
-    // let validator_set = client
-    //     .fetch_validator_set_by_height(number + 2)
-    //     .await
-    //     .expect("unable to fetch validator set");
+    let validator_set = client
+        .fetch_validator_set_by_height(number + 2)
+        .await
+        .expect("unable to fetch validator set");
 
     let chain_id = std::env::var("L1_CHAIN_ID").expect("L1_CHAIN_ID not set");
     let eth_rpc = format!("RPC_{}", chain_id);
     let rpc_url = std::env::var(eth_rpc).unwrap_or_else(|_| panic!("Missing eth rpc url in env"));
 
-    // Calculate the best l1 block to choose from the last_updated field in validator set
-    // let l1_block_number = find_best_l1_block(validator_set.result.validators, &rpc_url).await;
-    let l1_block_number = args.l1_block_number;
+    // Calculate the best l1 block to use
+    let l1_block_number = find_best_l1_block(validator_set.result.validators, &rpc_url).await;
 
     // The L1 block number against which the transaction is executed
     let block_number = BlockNumberOrTag::Number(l1_block_number);
@@ -305,31 +301,19 @@ pub fn serialize_precommit(precommit: &Precommit, heimdall_chain_id: &String) ->
 }
 
 async fn find_best_l1_block(validator_set: Vec<Validator>, rpc_url: &str) -> u64 {
-    let mut max_block = 0;
+    let mut latest_l1_block_number = 0;
     for validator in validator_set.iter() {
+        // The `last_updated` field in the validator set indicates an L1 block on which the
+        // the entry was updated. Because we want the recent most stake details, we'll use
+        // the highest block number (i.e. the most recent one) from all entries.
         let last_updated = u64::from_str(&validator.last_updated).unwrap();
-        // Block number is multipled with 100k to get the last updated value in heimdall
+
+        // The block number is multiplied by 100K to get the last updated value in heimdall.
         let block_number = last_updated / 100000;
-        if block_number > max_block {
-            max_block = block_number;
+        if block_number > latest_l1_block_number {
+            latest_l1_block_number = block_number;
         }
     }
 
-    // Fetch the latest l1 block
-    let provider = Provider::<Http>::try_from(rpc_url).unwrap();
-    let latest_block = provider.get_block_number().await.unwrap().as_u64();
-
-    // Because we can only access last 256 blocks in solidity, if the max_block is beyond that, use
-    // the latest one.
-    if max_block < latest_block - 256 {
-        max_block = latest_block;
-    }
-
-    println!(
-        "Choosing L1 block to generate proof against: {}, latest: {}",
-        max_block, latest_block
-    );
-
-    // TODO: Make sure no staking event happened after this block
-    max_block
+    latest_l1_block_number
 }
