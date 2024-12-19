@@ -7,8 +7,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use url::Url;
 
-use ethers::providers::{Http, Middleware, Provider};
-
 use alloy_primitives::{Address, FixedBytes};
 use alloy_provider::ReqwestProvider;
 use alloy_rpc_types::BlockNumberOrTag;
@@ -178,7 +176,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     let rpc_url = std::env::var(eth_rpc).unwrap_or_else(|_| panic!("Missing eth rpc url in env"));
 
     // Calculate the best l1 block to use
-    let l1_block_number_u64 = find_best_l1_block(validator_set.result.validators, &rpc_url).await;
+    let l1_block_number_u64 = find_best_l1_block(validator_set.result.validators).await;
 
     // The L1 block number against which the transaction is executed
     let l1_block_number = BlockNumberOrTag::Number(l1_block_number_u64);
@@ -302,7 +300,7 @@ pub fn serialize_precommit(precommit: &Precommit, heimdall_chain_id: &String) ->
     types::serialize_precommit(&vote)
 }
 
-async fn find_best_l1_block(validator_set: Vec<Validator>, rpc_url: &str) -> u64 {
+async fn find_best_l1_block(validator_set: Vec<Validator>) -> u64 {
     let mut latest_l1_block_number = 0;
     for validator in validator_set.iter() {
         // The `last_updated` field in the validator set indicates an L1 block on which the
