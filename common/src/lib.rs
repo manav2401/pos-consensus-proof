@@ -26,6 +26,7 @@ pub struct PoSConsensusInput {
 
     // l1 related data
     pub state_sketch_bytes: Vec<u8>,
+    pub l1_block_header: Header,
     pub l1_block_hash: B256,
     pub stake_info_address: Address,
 }

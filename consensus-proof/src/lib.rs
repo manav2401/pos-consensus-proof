@@ -32,10 +32,25 @@ pub fn prove(input: PoSConsensusInput) -> PoSConsensusCommit {
     assert_eq!(input.precommits.len(), input.sigs.len());
     assert_eq!(input.sigs.len(), input.signers.len());
 
-    let state_sketch = bincode::deserialize::<EVMStateSketch>(&input.state_sketch_bytes).unwrap();
+    // Verify if the hash of l1 header matches with the hash provided in input
+    assert_eq!(
+        input.l1_block_header.hash_slow(),
+        input.l1_block_hash,
+        "block hash mismatch between hash derived from header vs hash provided in input",
+    );
 
-    // Initialize the client executor with the state sketch.
+    // As we verified both l1 and bor block hashes before, we can use their headers to match
+    // timestamps. Ensure that the difference between both is not more than 3 hours. This is to
+    // make sure that a recent most L1 block hash is used and not any valid block hash.
+    let l1_timestamp = i64::try_from(input.l1_block_header.timestamp).unwrap();
+    let l2_timestamp = i64::try_from(input.bor_header.timestamp).unwrap();
+    if l1_timestamp - l2_timestamp > 10800 || l1_timestamp - l2_timestamp < -10800 {
+        panic!("Time difference between L1 and L2 blocks is >3hrs")
+    }
+
+    // Deserialize the state sketch from input bytes and initialize the client executor with it.
     // This step also validates all of the storage against the provided state root.
+    let state_sketch = bincode::deserialize::<EVMStateSketch>(&input.state_sketch_bytes).unwrap();
     let executor = ClientExecutor::new(state_sketch).unwrap();
 
     // Execute the `getEncodedValidatorInfo` call using the client executor to fetch the
