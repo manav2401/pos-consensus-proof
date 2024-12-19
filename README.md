@@ -1,54 +1,57 @@
 # pos-consensus-proof
-Generate consensus proof for Polygon PoS using SP1
-
-This is an extended version of [polygon-pos-light](https://github.com/paulgoleary/polygon-pos-light) by [Paul](https://github.com/paulgoleary).
+Generate consensus proof for Polygon PoS chain using SP1.
 
 > [!WARNING]
-> This work is experimental and should not be used in production.
+> This work is not audited. Please use at your own risk.
 
 ### Background
 
-Polygon PoS contains 2 layers -- heimdall and bor. Bor (a fork of geth) is the block producing layer and heimdall is the consensus layer based on tendermint and maintains governs the validator set and bridging. In order to do settlement on Ethereum and bridging, heimdall submits `Checkpoints` on regular intervals. A checkpoint is nothing but the root hash of a range of bor blocks signed by all validators. With [PIP-11](https://github.com/maticnetwork/Polygon-Improvement-Proposals/blob/main/PIPs/PIP-11.md), a new structure for `Milestones` has been introduced which are meta checkpoints used as a finality gadget for bor. The only difference lies in it's structure and the fact that they're not submitted on Ethereum and are much more frequent.
+Polygon PoS contains 2 layers — bor (execution layer based on geth/erigon) and heimdall (consensus layer based on tendermint). Polygon is also building [AggLayer](https://github.com/agglayer), which expects each chain to generate a ZK proof with different security assumptions. A full execution proof is practically infeasible with a 2s block time for PoS. Hence, as an excercise to plug PoS into AggLayer, we rely on consensus proofs.
 
-### Proving consensus
+### Proving Consensus
 
-With the PoS chain moving towards being zkPoS and connecting with [AggLayer](https://github.com/agglayer), the first step is attach to AggLayer is to have the ability to generate proof. As generating full execution proofs is very expensive and time consuming as of now, it's not feasible to generate them with a 2s block time. Instead we rely on a consensus proof which is a zk proof which asserts that majority (2/3+1) of the validators signed a particular checkpoint/milestone. This in-directly proves the state of the underlying chain (i.e. bor). While there are multiple ways to achieve this, a generic zk proof seems much simple, efficient and easy to generate with general purpose zkVMs like [SP1](https://github.com/succinctlabs/sp1).
+Consensus proofs asserts that the majority (>2/3) of PoS validator set agree on a specific state of chain. This allows an external layer (e.g. AggLayer) to verify that the chain is operating honestly assuming the majority validator set is honest. To elaoborate a bit more, the specific state of chain here means a particular state of the execution layer. This is achieved using milestones, which is a also used for finality in PoS. Milestones are messages which are proposed in heimdall representing a range of bor blocks and is being voted upon and persisted. While there is more nuance to it, at a high level consensus proofs basically validates if majority of validators voted upon / signed a milestone message through signature verification.
 
-### Requirements
+### Repository Overview
 
-- [Rust](https://rustup.rs/)
-- [SP1](https://succinctlabs.github.io/sp1/getting-started/install.html)
+This repositories is organised into the following directories:
+- `consensus-proof`: Contains the ZK circuit of verifying a milestone message and respective helper functions.
+- `operator`: Implementation of an operator which assembles inputs used to generate the proof.
+- `common`: Contains generic global types.
+- `contracts`: The solidity contracts for on-chain verification and fetching validator set data.
 
-### Standard Proof Generation
+### Proof Generation
 
-> [!WARNING]
-> You will need at least 16GB RAM to generate the default proof.
+Make sure you've [Rust](https://rustup.rs/) and [SP1](https://docs.succinct.xyz/docs/getting-started/install) installed.
 
-Generate the proof for your program using the standard prover.
+Using the `operator` service, one can generate consensus proofs for any PoS chain given appropriate configurations are provided. Below are the steps to do the same.
 
-```sh
-cd script
-RUST_LOG=info cargo run --bin prove --release
-```
+1. Create an environment file using the example. Fill in all relevant details which will be used for assembling the inputs. It needs information about L1 (eth mainnet / sepolia), PoS endpoints (mainnet / amoy for heimdall and bor).
+    ```sh
+    cp .env.example .env
+    ```
+2. Make sure you're able to build the operator.
+    ```sh
+    cd operator
+    cargo build
+    ```
+3. Run the operator service
+    ```sh
+    RUST_LOG=info cargo run --release -- --milestone_id <id> --milestone_hash <hash> --prev_l2_block_number <hash> --new_l2_block_number <number> --proof_type <plonk/compressed> --prove
+    ```
+    Going forward, the initial flags about milestone and block number will be internalised in the operator service itself so that it auto picks up these values. One can generate PLONK and compressed proofs by specifying it in the `proof_type` flag. If you just want to execute, remove the `--prove` flag.
+4. Operator also has some helper commands.
+    ```sh
+    # To print the vkey
+    RUST_LOG=info cargo run --release --bin vkey
 
-### EVM-Compatible Proof Generation & Verification
+    # To verify the proof generated
+    RUST_LOG=info cargo run --release --bin verify
+    ```
 
-> [!WARNING]
-> You will need at least 128GB RAM to generate the PLONK proof.
+If you want to use the SP1 prover network, set the `SP1_PROVER` env variable to `network` and set the `SP1_PRIVATE_KEY` environment variable to your whitelisted private key. For more information, see the [setup guide](https://docs.succinct.xyz/docs/generating-proofs/prover-network).
 
-Generate the proof that is small enough to be verified on-chain and verifiable by the EVM. This command also generates a fixture that can be used to test the verification of SP1 zkVM proofs inside Solidity.
+### Acknowledgements
 
-```sh
-cd script
-RUST_LOG=info cargo run --bin prove --release -- --evm
-```
-
-### Using the Prover Network
-
-Make a copy of the example environment file:
-
-```sh
-cp .env.example .env
-```
-
-Then, set the `SP1_PROVER` environment variable to `network` and set the `SP1_PRIVATE_KEY` environment variable to your whitelisted private key. For more information, see the [setup guide](https://docs.succinct.xyz/prover-network/setup.html).
+- [SP1](https://github.com/succinctlabs/sp1)
+- A PoC [polygon-pos-light](https://github.com/paulgoleary/polygon-pos-light) by [Paul](https://github.com/paulgoleary).
