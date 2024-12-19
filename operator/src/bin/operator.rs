@@ -178,10 +178,10 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     let rpc_url = std::env::var(eth_rpc).unwrap_or_else(|_| panic!("Missing eth rpc url in env"));
 
     // Calculate the best l1 block to use
-    let l1_block_number = find_best_l1_block(validator_set.result.validators, &rpc_url).await;
+    let l1_block_number_u64 = find_best_l1_block(validator_set.result.validators, &rpc_url).await;
 
     // The L1 block number against which the transaction is executed
-    let block_number = BlockNumberOrTag::Number(l1_block_number);
+    let l1_block_number = BlockNumberOrTag::Number(l1_block_number_u64);
 
     // Read the stake info contract
     let stake_info_address_str = std::env::var("L1_STAKE_INFO").expect("L1_STAKE_INFO not set");
@@ -192,10 +192,11 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     //
     // Use `ETH_RPC_URL` to get all of the necessary state for the smart contract call.
     let provider = ReqwestProvider::new_http(Url::parse(&rpc_url)?);
-    let mut host_executor = HostExecutor::new(provider.clone(), block_number).await?;
+    let mut host_executor = HostExecutor::new(provider.clone(), l1_block_number).await?;
 
-    // Keep track of the block hash. Later, validate the client's execution against this.
-    let l1_block_hash = host_executor.header.hash_slow();
+    // Keep track of the l1 block. Later, validate the client's execution against this.
+    let l1_block_header = host_executor.clone().header;
+    let l1_block_hash = l1_block_header.hash_slow();
 
     // Make the call to the getEncodedValidatorInfo function.
     let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
@@ -261,6 +262,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
         bor_header,
         prev_bor_header,
         state_sketch_bytes,
+        l1_block_header,
         l1_block_hash,
         stake_info_address, // verifier interacts with stake manager
     })
