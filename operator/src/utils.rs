@@ -129,7 +129,6 @@ impl PosClient {
     /// Fetches a tendermint block results by number
     pub async fn fetch_block_results_by_number(&self, number: u64) -> Result<BlockResultResponse> {
         let url = format!("{}/block_results?height={}", self.tendermint_url, number);
-        println!("Fetching block by number: {}", url);
         let response = self
             .http_client
             .get(url)

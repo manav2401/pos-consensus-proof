@@ -39,6 +39,25 @@ pub struct TxResponseResult {
     pub hash: String,
     pub height: String,
     pub tx: String,
+    pub tx_result: TxResult,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TxResult {
+    pub events: Vec<EventWithAttributes>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EventWithAttributes {
+    #[serde(rename = "type")]
+    pub type_field: String,
+    pub attributes: Vec<Attribute>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Attribute {
+    pub key: String,
+    pub value: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,7 +72,13 @@ pub struct BlockResponseResult {
 
 #[derive(Debug, Deserialize)]
 pub struct Block {
+    pub data: BlockData,
     pub last_commit: LastCommit,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BlockData {
+    pub txs: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
