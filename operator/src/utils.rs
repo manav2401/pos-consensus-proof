@@ -1,5 +1,6 @@
 use crate::types::{
-    BlockResponse, MilestoneResponse, StatusResponse, TxResponse, ValidatorSetResponse,
+    BlockResponse, BlockResultResponse, MilestoneResponse, StatusResponse, TxResponse,
+    ValidatorSetResponse,
 };
 
 use alloy_primitives::FixedBytes;
@@ -125,8 +126,20 @@ impl PosClient {
         Ok(response)
     }
 
-    /// Fetches a tendermint block result by number
-    pub async fn fetch_block_result_by_number(&self, number: u64) {}
+    /// Fetches a tendermint block results by number
+    pub async fn fetch_block_results_by_number(&self, number: u64) -> Result<BlockResultResponse> {
+        let url = format!("{}/block_results?height={}", self.tendermint_url, number);
+        println!("Fetching block by number: {}", url);
+        let response = self
+            .http_client
+            .get(url)
+            .headers(self.headers.clone())
+            .send()
+            .await?
+            .json::<BlockResultResponse>()
+            .await?;
+        Ok(response)
+    }
 
     /// Fetches the validator set from heimdall
     pub async fn fetch_validator_set(&self) -> Result<ValidatorSetResponse> {

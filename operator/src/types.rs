@@ -96,7 +96,31 @@ pub struct SideTxResult {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct BlockResultResponse {
+    pub result: BlockResult,
+}
 
+#[derive(Debug, Deserialize)]
+pub struct BlockResult {
+    pub results: Results,
+}
+#[derive(Debug, Deserialize)]
+pub struct Results {
+    pub deliver_tx: Vec<DeliverTx>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DeliverTx {
+    pub events: Vec<Event>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Event {
+    #[serde(rename = "type")]
+    pub type_field: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct ValidatorSetResponse {
     pub result: Validators,
 }
