@@ -1,4 +1,6 @@
-use crate::types::{BlockResponse, MilestoneResponse, TxResponse, ValidatorSetResponse};
+use crate::types::{
+    BlockResponse, MilestoneResponse, StatusResponse, TxResponse, ValidatorSetResponse,
+};
 
 use alloy_primitives::FixedBytes;
 use alloy_provider::ReqwestProvider;
@@ -61,6 +63,21 @@ impl PosClient {
             http_client: Client::new(),
             headers,
         }
+    }
+
+    /// Fetches current heimdall status (sync status and latest height specifically)
+    pub async fn fetch_heimdall_status(&self) -> Result<StatusResponse> {
+        let url = format!("{}/status", self.heimdall_url);
+        println!("Fetching heimdall status from: {}", url);
+        let response = self
+            .http_client
+            .get(url)
+            .headers(self.headers.clone())
+            .send()
+            .await?
+            .json::<StatusResponse>()
+            .await?;
+        Ok(response)
     }
 
     /// Fetches a heimdall milestone by id

@@ -317,3 +317,12 @@ async fn find_best_l1_block(validator_set: Vec<Validator>) -> u64 {
 
     latest_l1_block_number
 }
+
+async fn find_latest_milestone_tx() {
+    // 1. Call status endpoint to find latest block. Starting block is latest-2.
+    // 2. Start fetching block_results going backwards.
+    // 3. In the response, look for milestone tx in deliver_tx field.
+    // 4. Skip and move to previous block if not found.
+    // 5. If found, fetch full block, and get transactions in that block.
+    // 6. Loop over transactions, find the milestone one, and save the tx data and hash.
+}

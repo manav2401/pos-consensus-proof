@@ -1,6 +1,19 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
+pub struct StatusResponse {
+    pub result: StatusResult,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Status {
+    #[serde(rename = "latest_block_height")]
+    pub latest_block_height: u64,
+    #[serde(rename = "catching_up")]
+    pub catching_up: bool,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct MilestoneResponse {
     pub result: Milestone,
 }
