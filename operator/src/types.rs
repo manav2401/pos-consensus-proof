@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct StatusResponse {
-    pub result: StatusResult,
+    pub result: Status,
 }
 
 #[derive(Debug, Deserialize)]

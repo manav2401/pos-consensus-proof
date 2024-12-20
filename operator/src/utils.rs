@@ -125,6 +125,9 @@ impl PosClient {
         Ok(response)
     }
 
+    /// Fetches a tendermint block result by number
+    pub async fn fetch_block_result_by_number(&self, number: u64) {}
+
     /// Fetches the validator set from heimdall
     pub async fn fetch_validator_set(&self) -> Result<ValidatorSetResponse> {
         let url: String = format!("{}/staking/validator-set", self.heimdall_url);
