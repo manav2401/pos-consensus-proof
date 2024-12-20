@@ -1,6 +1,19 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
+pub struct StatusResponse {
+    pub result: Status,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Status {
+    #[serde(rename = "latest_block_height")]
+    pub latest_block_height: u64,
+    #[serde(rename = "catching_up")]
+    pub catching_up: bool,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct MilestoneResponse {
     pub result: Milestone,
 }
@@ -26,6 +39,25 @@ pub struct TxResponseResult {
     pub hash: String,
     pub height: String,
     pub tx: String,
+    pub tx_result: TxResult,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TxResult {
+    pub events: Vec<EventWithAttributes>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EventWithAttributes {
+    #[serde(rename = "type")]
+    pub type_field: String,
+    pub attributes: Vec<Attribute>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Attribute {
+    pub key: String,
+    pub value: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,7 +72,13 @@ pub struct BlockResponseResult {
 
 #[derive(Debug, Deserialize)]
 pub struct Block {
+    pub data: BlockData,
     pub last_commit: LastCommit,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BlockData {
+    pub txs: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -83,7 +121,31 @@ pub struct SideTxResult {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct BlockResultResponse {
+    pub result: BlockResult,
+}
 
+#[derive(Debug, Deserialize)]
+pub struct BlockResult {
+    pub results: Results,
+}
+#[derive(Debug, Deserialize)]
+pub struct Results {
+    pub deliver_tx: Vec<DeliverTx>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DeliverTx {
+    pub events: Vec<Event>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Event {
+    #[serde(rename = "type")]
+    pub type_field: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct ValidatorSetResponse {
     pub result: Validators,
 }

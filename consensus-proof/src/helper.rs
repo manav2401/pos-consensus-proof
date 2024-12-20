@@ -2,10 +2,11 @@ use crate::types::*;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use core::str;
-use sha2::{Digest, Sha256};
 
 use alloy_primitives::{Address, FixedBytes};
 use reth_primitives::recover_signer_unchecked;
+
+use common::sha256;
 
 // Verifies if the signature is indeed signed by the expected signer or not
 pub fn verify_signature(signature: &str, message_hash: &[u8; 32], expected_signer: Address) {
@@ -68,17 +69,4 @@ pub fn verify_precommit(precommit_message: &mut Vec<u8>, expected_hash: &FixedBy
         "tx_hash in precommit doesn't match with milestone tx_hash"
     );
     assert_eq!(side_tx.result, 1, "no yes vote on the side tx");
-}
-
-fn sha256(decoded_tx_data: &[u8]) -> FixedBytes<32> {
-    // Create a new Sha256 instance
-    let mut hasher = Sha256::new();
-
-    // Write the tx data
-    hasher.update(decoded_tx_data);
-
-    // Read hash digest and consume hasher
-    let result = hasher.finalize();
-
-    FixedBytes::from_slice(result.as_slice())
 }

@@ -1462,6 +1462,7 @@ dependencies = [
  "alloy-sol-types 0.8.15",
  "reth-primitives",
  "serde",
+ "sha2",
 ]
 
 [[package]]

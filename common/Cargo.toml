@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+sha2.workspace = true
 serde.workspace = true
 reth-primitives.workspace = true
 alloy-primitives.workspace = true
