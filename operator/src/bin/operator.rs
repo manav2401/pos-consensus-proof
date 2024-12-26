@@ -29,12 +29,6 @@ use pos_consensus_proof_operator::{
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
     #[clap(long)]
-    milestone_id: u64,
-
-    #[clap(long)]
-    milestone_hash: String,
-
-    #[clap(long)]
     prev_l2_block_number: u64,
 
     #[clap(long)]
@@ -220,7 +214,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     let input = host_executor.finalize().await?;
     let state_sketch_bytes = bincode::serialize(&input)?;
 
-    // Fetch the bor block again the block hash read
+    // Fetch the bor block against the block hash read
     let prev_bor_block_hash = response.lastVerifiedBorBlockHash;
 
     // If the hash is zero, use a default header
