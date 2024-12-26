@@ -28,12 +28,6 @@ use pos_consensus_proof_operator::{
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
-    #[clap(long)]
-    prev_l2_block_number: u64,
-
-    #[clap(long)]
-    new_l2_block_number: u64,
-
     #[arg(long, default_value_t = false)]
     prove: bool,
 
@@ -55,8 +49,6 @@ async fn main() -> eyre::Result<()> {
 
     let args = Args::parse();
     let prove = args.prove;
-    let prev_l2_block_number = args.prev_l2_block_number;
-    let new_l2_block_number = args.new_l2_block_number;
     let mut proof_type = args.proof_type.clone();
 
     let l2_chain_id = std::env::var("L2_CHAIN_ID").expect("L2_CHAIN_ID not set");
@@ -70,6 +62,9 @@ async fn main() -> eyre::Result<()> {
 
     println!("Executing the program...");
     prover.execute(inputs.clone());
+
+    let prev_l2_block_number = inputs.prev_bor_header.number;
+    let new_l2_block_number = inputs.bor_header.number;
 
     if prove {
         if proof_type.is_empty() {
@@ -86,7 +81,7 @@ async fn main() -> eyre::Result<()> {
                     "../../proof/chain{}/consensus_block_{}_to_{}.bin",
                     l2_chain_id.as_str(),
                     prev_l2_block_number,
-                    new_l2_block_number
+                    new_l2_block_number,
                 ),
             );
         } else if proof_type == "plonk" {
@@ -99,7 +94,7 @@ async fn main() -> eyre::Result<()> {
                     "../../proof/chain{}/consensus_block_{}_to_{}.bin",
                     l2_chain_id.as_str(),
                     prev_l2_block_number,
-                    new_l2_block_number
+                    new_l2_block_number,
                 ),
             );
         } else {
@@ -225,10 +220,6 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
             .fetch_bor_number_by_hash(prev_bor_block_hash)
             .await
             .unwrap();
-        assert_eq!(
-            prev_bor_block_number, args.prev_l2_block_number,
-            "prev bor block number mismatch with the one present in contract"
-        );
 
         // Fetch the bor header using the number read
         prev_bor_header = client
