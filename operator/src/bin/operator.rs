@@ -15,8 +15,8 @@ use reth_primitives::{hex, Header};
 use sp1_cc_client_executor::ContractInput;
 use sp1_cc_host_executor::HostExecutor;
 
-use common::CALLER;
-use common::{ConsensusProofVerifier, PoSConsensusInput};
+use common::{sha256, ConsensusProofVerifier, PoSConsensusInput};
+use common::{CALLER, MAX_HEIMDALL_LOOKUP};
 use pos_consensus_proof::{types, types::heimdall_types};
 use pos_consensus_proof_operator::{
     types::{Precommit, Validator},
@@ -29,12 +29,6 @@ use pos_consensus_proof_operator::{
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
     #[clap(long)]
-    milestone_id: u64,
-
-    #[clap(long)]
-    milestone_hash: String,
-
-    #[clap(long)]
     prev_l2_block_number: u64,
 
     #[clap(long)]
@@ -45,6 +39,14 @@ pub struct Args {
 
     #[clap(long)]
     proof_type: String,
+}
+
+/// Context for storing milestone related values
+pub struct Context {
+    milestone_end_block: u64,
+    milestone_tx_hash: String,
+    milestone_tx: String,
+    milestone_block_height: u64,
 }
 
 #[tokio::main]
@@ -125,20 +127,12 @@ pub fn save_proof(proof: SP1ProofWithPublicValues, l2_chain_id: &str, name: Stri
 pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     let client = PosClient::default();
 
-    let milestone = client
-        .fetch_milestone_by_id(args.milestone_id)
-        .await
-        .expect("unable to fetch milestone");
-    assert_eq!(milestone.result.end_block, args.new_l2_block_number);
+    let context = find_latest_milestone_tx(&client).await?;
 
-    let tx = client
-        .fetch_tx_by_hash(args.milestone_hash)
-        .await
-        .expect("unable to fetch milestone tx");
-
-    let number: u64 = tx.result.height.parse().unwrap();
+    // Fetch the block in which side transaction voting for milestone tx completed (n+2).
+    let number: u64 = context.milestone_block_height + 2;
     let block = client
-        .fetch_block_by_number(number + 2)
+        .fetch_block_by_number(number)
         .await
         .expect("unable to fetch block");
 
@@ -159,7 +153,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     }
 
     // Use the host executor to fetch the required bor block
-    let bor_block_number = BlockNumberOrTag::Number(milestone.result.end_block);
+    let bor_block_number = BlockNumberOrTag::Number(context.milestone_end_block);
     let bor_header = client
         .fetch_bor_header_by_number(bor_block_number)
         .await
@@ -220,7 +214,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     let input = host_executor.finalize().await?;
     let state_sketch_bytes = bincode::serialize(&input)?;
 
-    // Fetch the bor block again the block hash read
+    // Fetch the bor block against the block hash read
     let prev_bor_block_hash = response.lastVerifiedBorBlockHash;
 
     // If the hash is zero, use a default header
@@ -252,8 +246,8 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     }
 
     Ok(PoSConsensusInput {
-        tx_data: tx.result.tx,
-        tx_hash: FixedBytes::from_str(&tx.result.hash).unwrap(),
+        tx_data: context.milestone_tx,
+        tx_hash: FixedBytes::from_str(&context.milestone_tx_hash).unwrap(),
         precommits,
         sigs,
         signers,
@@ -316,4 +310,112 @@ async fn find_best_l1_block(validator_set: Vec<Validator>) -> u64 {
     }
 
     latest_l1_block_number
+}
+
+async fn find_latest_milestone_tx(client: &PosClient) -> eyre::Result<Context> {
+    let block_number = find_latest_milestone_block(client).await?;
+    let block = client
+        .fetch_block_by_number(block_number)
+        .await
+        .expect("unable to fetch block by number");
+    let txs = block.result.block.data.txs;
+
+    if txs.is_empty() {
+        return Err(eyre::eyre!(
+            "No transactions found in the selected heimdall block"
+        ));
+    }
+
+    for tx in txs.iter() {
+        // Decode the transaction data and calculate it's hash
+        let decoded_tx_data = BASE64_STANDARD.decode(tx).expect("tx data decoding failed");
+        let tx_hash = sha256(decoded_tx_data.as_slice());
+
+        // Fetch the tendermint transaction
+        let tx_response = client
+            .fetch_tx_by_hash(tx_hash.to_string())
+            .await
+            .expect("unable to fetch tx by hash");
+
+        // Confirm if it's a milestone transaction or not.
+        for event in tx_response.result.tx_result.events.iter() {
+            if event.type_field == "milestone" {
+                for attribute in event.attributes.iter() {
+                    // Match with the base64 encoded string of 'end-block'
+                    if attribute.key == "ZW5kLWJsb2Nr" {
+                        let end_block_vec = BASE64_STANDARD.decode(&attribute.value).unwrap();
+                        let end_block = u64::from_le_bytes(end_block_vec.try_into().unwrap());
+                        return Ok(Context {
+                            milestone_end_block: end_block,
+                            milestone_tx_hash: tx_response.result.hash.clone(),
+                            milestone_tx: tx_response.result.tx.clone(),
+                            milestone_block_height: block_number,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // Ideally we should have found milestone tx and all required data by now. Return error if not.
+    Err(eyre::eyre!(
+        "Unable to find recentmost milestone transaction"
+    ))
+}
+
+async fn find_latest_milestone_block(client: &PosClient) -> eyre::Result<u64> {
+    // Fetch the status of heimdall node to know if it's in sync and find the latest block
+    let status = client
+        .fetch_heimdall_status()
+        .await
+        .expect("unable to fetch heimdall status");
+
+    // Exit if heimdall is out of sync
+    if status.result.catching_up {
+        // Return an error
+        return Err(eyre::eyre!(
+            "Heimdall seems to be out of sync, please try with a fully synced node."
+        ));
+    }
+
+    let mut block_number: u64 = status.result.latest_block_height - 2;
+    let mut count: u64 = 0;
+    // Iterate from latest block backwards
+    loop {
+        if count > MAX_HEIMDALL_LOOKUP {
+            return Err(eyre::eyre!(
+                "Unable to find latest milestone transaction in heimdall"
+            ));
+        }
+        if count % 10 == 0 {
+            println!("Looking for milestone tx in block: {}", block_number);
+        }
+
+        // Fetch the block result
+        let block_result = client
+            .fetch_block_results_by_number(block_number)
+            .await
+            .unwrap_or_else(|_| {
+                panic!(
+                    "unable to fetch heimdall block results for block: {}",
+                    block_number
+                )
+            });
+
+        // Check if the block has any milestone tx or not in the `deliver_tx` field
+        let txs = block_result.result.results.deliver_tx;
+        if !txs.is_empty() {
+            for tx in txs.iter() {
+                for event in tx.events.iter() {
+                    if event.type_field == "milestone" {
+                        println!("Milestone tx found in block: {}", block_number);
+                        return Ok(block_number);
+                    }
+                }
+            }
+        }
+
+        count += 1;
+        block_number -= 1;
+    }
 }

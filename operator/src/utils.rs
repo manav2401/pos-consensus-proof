@@ -1,4 +1,7 @@
-use crate::types::{BlockResponse, MilestoneResponse, TxResponse, ValidatorSetResponse};
+use crate::types::{
+    BlockResponse, BlockResultResponse, MilestoneResponse, StatusResponse, TxResponse,
+    ValidatorSetResponse,
+};
 
 use alloy_primitives::FixedBytes;
 use alloy_provider::ReqwestProvider;
@@ -63,6 +66,21 @@ impl PosClient {
         }
     }
 
+    /// Fetches current heimdall status (sync status and latest height specifically)
+    pub async fn fetch_heimdall_status(&self) -> Result<StatusResponse> {
+        let url = format!("{}/status", self.heimdall_url);
+        println!("Fetching heimdall status from: {}", url);
+        let response = self
+            .http_client
+            .get(url)
+            .headers(self.headers.clone())
+            .send()
+            .await?
+            .json::<StatusResponse>()
+            .await?;
+        Ok(response)
+    }
+
     /// Fetches a heimdall milestone by id
     pub async fn fetch_milestone_by_id(&self, id: u64) -> Result<MilestoneResponse> {
         let url = format!("{}/milestone/{}", self.heimdall_url, id);
@@ -104,6 +122,20 @@ impl PosClient {
             .send()
             .await?
             .json::<BlockResponse>()
+            .await?;
+        Ok(response)
+    }
+
+    /// Fetches a tendermint block results by number
+    pub async fn fetch_block_results_by_number(&self, number: u64) -> Result<BlockResultResponse> {
+        let url = format!("{}/block_results?height={}", self.tendermint_url, number);
+        let response = self
+            .http_client
+            .get(url)
+            .headers(self.headers.clone())
+            .send()
+            .await?
+            .json::<BlockResultResponse>()
             .await?;
         Ok(response)
     }
