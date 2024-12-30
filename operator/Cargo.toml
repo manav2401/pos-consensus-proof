@@ -11,6 +11,10 @@ path = "src/bin/vkey.rs"
 name = "verify"
 path = "src/bin/verify.rs"
 
+[[bin]]
+name = "repro"
+path = "src/bin/repro.rs"
+
 [dependencies]
 pos-consensus-proof = { path = "../consensus-proof" }
 common = { path = "../common"}
