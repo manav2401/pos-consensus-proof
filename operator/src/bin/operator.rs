@@ -10,6 +10,7 @@ use url::Url;
 use alloy_primitives::{Address, FixedBytes};
 use alloy_provider::ReqwestProvider;
 use alloy_rpc_types::BlockNumberOrTag;
+use ethers::providers::{Http, Middleware, Provider};
 use reth_primitives::{hex, Header};
 
 use sp1_cc_client_executor::ContractInput;
@@ -32,10 +33,14 @@ pub struct Args {
     prove: bool,
 
     #[clap(long)]
-    proof_type: String,
+    proof_type: Option<String>,
+
+    #[arg(long, default_value_t = false)]
+    skip_l1_block_validation: bool,
 }
 
 /// Context for storing milestone related values
+#[derive(Parser, Debug)]
 pub struct Context {
     milestone_end_block: u64,
     milestone_tx_hash: String,
@@ -50,6 +55,7 @@ async fn main() -> eyre::Result<()> {
     let args = Args::parse();
     let prove = args.prove;
     let mut proof_type = args.proof_type.clone();
+    let skip_l1_block_validation = args.skip_l1_block_validation;
 
     let l2_chain_id = std::env::var("L2_CHAIN_ID").expect("L2_CHAIN_ID not set");
 
@@ -58,7 +64,7 @@ async fn main() -> eyre::Result<()> {
     let prover = ConsensusProver::new();
 
     println!("Assembling data for generating proof...");
-    let inputs = generate_inputs(args).await?;
+    let inputs = generate_inputs(skip_l1_block_validation).await?;
 
     println!("Executing the program...");
     prover.execute(inputs.clone());
@@ -67,11 +73,11 @@ async fn main() -> eyre::Result<()> {
     let new_l2_block_number = inputs.bor_header.number;
 
     if prove {
-        if proof_type.is_empty() {
+        if proof_type.is_none() {
             println!("No proof type provided, defaulting to compressed");
-            proof_type = "compressed".to_string();
+            proof_type = Some("compressed".to_string());
         }
-        if proof_type.eq("compressed") {
+        if proof_type.as_ref().unwrap() == "compressed" {
             let proof = prover.generate_consensus_proof_compressed(inputs);
             prover.verify_consensus_proof(&proof);
             save_proof(
@@ -84,7 +90,7 @@ async fn main() -> eyre::Result<()> {
                     new_l2_block_number,
                 ),
             );
-        } else if proof_type == "plonk" {
+        } else if proof_type.as_ref().unwrap() == "plonk" {
             let proof = prover.generate_consensus_proof_plonk(inputs);
             prover.verify_consensus_proof(&proof);
             save_proof(
@@ -119,10 +125,11 @@ pub fn save_proof(proof: SP1ProofWithPublicValues, l2_chain_id: &str, name: Stri
     }
 }
 
-pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
+pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoSConsensusInput> {
     let client = PosClient::default();
 
     let context = find_latest_milestone_tx(&client).await?;
+    println!("Context: {:?}", context);
 
     // Fetch the block in which side transaction voting for milestone tx completed (n+2).
     let number: u64 = context.milestone_block_height + 2;
@@ -160,12 +167,13 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
         .await
         .expect("unable to fetch validator set");
 
-    let chain_id = std::env::var("L1_CHAIN_ID").expect("L1_CHAIN_ID not set");
-    let eth_rpc = format!("RPC_{}", chain_id);
-    let rpc_url = std::env::var(eth_rpc).unwrap_or_else(|_| panic!("Missing eth rpc url in env"));
+    let rpc_url =
+        std::env::var("ETH_RPC_URL").unwrap_or_else(|_| panic!("Missing ETH_RPC_URL in env"));
 
     // Calculate the best l1 block to use
-    let l1_block_number_u64 = find_best_l1_block(validator_set.result.validators).await;
+    let l1_block_number_u64 =
+        find_best_l1_block(validator_set.result.validators, skip_l1_block_validation).await?;
+    println!("L1 block chosen: {}", l1_block_number_u64);
 
     // The L1 block number against which the transaction is executed
     let l1_block_number = BlockNumberOrTag::Number(l1_block_number_u64);
@@ -186,6 +194,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
     let l1_block_hash = l1_block_header.hash_slow();
 
     // Make the call to the getEncodedValidatorInfo function.
+    println!("Fetching last verified block from L1...");
     let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
     let _response: ConsensusProofVerifier::getEncodedValidatorInfoReturn = host_executor
         .execute(ContractInput {
@@ -196,6 +205,7 @@ pub async fn generate_inputs(args: Args) -> eyre::Result<PoSConsensusInput> {
         .await?;
 
     // Make another call to fetch the last verified bor block hash
+    println!("Fetching staking data from L1...");
     let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
     let response: ConsensusProofVerifier::lastVerifiedBorBlockHashReturn = host_executor
         .execute(ContractInput {
@@ -285,8 +295,11 @@ pub fn serialize_precommit(precommit: &Precommit, heimdall_chain_id: &String) ->
     types::serialize_precommit(&vote)
 }
 
-async fn find_best_l1_block(validator_set: Vec<Validator>) -> u64 {
-    let mut latest_l1_block_number = 0;
+async fn find_best_l1_block(
+    validator_set: Vec<Validator>,
+    skip_l1_block_validation: bool,
+) -> eyre::Result<u64> {
+    let mut best_l1_block_number = 0;
     for validator in validator_set.iter() {
         // The `last_updated` field in the validator set indicates an L1 block on which the
         // the entry was updated. Because we want the recent most stake details, we'll use
@@ -295,12 +308,36 @@ async fn find_best_l1_block(validator_set: Vec<Validator>) -> u64 {
 
         // The block number is multiplied by 100K to get the last updated value in heimdall.
         let block_number = last_updated / 100000;
-        if block_number > latest_l1_block_number {
-            latest_l1_block_number = block_number;
+        if block_number > best_l1_block_number {
+            best_l1_block_number = block_number;
         }
     }
 
-    latest_l1_block_number
+    // Fetch the latest L1 block
+    let rpc_url =
+        std::env::var("ETH_RPC_URL").unwrap_or_else(|_| panic!("Missing ETH_RPC_URL in env"));
+    let provider = Provider::<Http>::try_from(rpc_url).unwrap();
+    let latest_block = provider.get_block_number().await.unwrap().as_u64();
+
+    if !skip_l1_block_validation && best_l1_block_number > latest_block {
+        println!(
+            "Current L1 block: {} is behind the chosen (best) L1 block: {}. Either the L1 rpc is out of sync or a fork is being used. Set --enforce-l1-block-validaton to false to bypass.",
+            latest_block, best_l1_block_number
+        );
+        return Err(eyre::eyre!(
+            "Current L1 block is behind chosen L1 block number"
+        ));
+    }
+
+    if skip_l1_block_validation && best_l1_block_number > latest_block {
+        println!(
+            "Using the latest L1 block: {} as the chosen (best) L1 block: {} is behind",
+            latest_block, best_l1_block_number
+        );
+        best_l1_block_number = latest_block;
+    }
+
+    Ok(best_l1_block_number)
 }
 
 async fn find_latest_milestone_tx(client: &PosClient) -> eyre::Result<Context> {
@@ -309,8 +346,8 @@ async fn find_latest_milestone_tx(client: &PosClient) -> eyre::Result<Context> {
         .fetch_block_by_number(block_number)
         .await
         .expect("unable to fetch block by number");
-    let txs = block.result.block.data.txs;
 
+    let txs = block.result.block.data.txs.unwrap_or_default();
     if txs.is_empty() {
         return Err(eyre::eyre!(
             "No transactions found in the selected heimdall block"
@@ -335,7 +372,10 @@ async fn find_latest_milestone_tx(client: &PosClient) -> eyre::Result<Context> {
                     // Match with the base64 encoded string of 'end-block'
                     if attribute.key == "ZW5kLWJsb2Nr" {
                         let end_block_vec = BASE64_STANDARD.decode(&attribute.value).unwrap();
-                        let end_block = u64::from_le_bytes(end_block_vec.try_into().unwrap());
+                        let end_block = String::from_utf8(end_block_vec)
+                            .unwrap()
+                            .parse::<u64>()
+                            .unwrap();
                         return Ok(Context {
                             milestone_end_block: end_block,
                             milestone_tx_hash: tx_response.result.hash.clone(),
@@ -369,8 +409,14 @@ async fn find_latest_milestone_block(client: &PosClient) -> eyre::Result<u64> {
         ));
     }
 
-    let mut block_number: u64 = status.result.latest_block_height - 2;
+    let mut block_number = status.result.latest_block_height.parse::<u64>().unwrap() - 2;
     let mut count: u64 = 0;
+
+    println!(
+        "Starting to look for latest milestone transaction. Height: {}",
+        block_number
+    );
+
     // Iterate from latest block backwards
     loop {
         if count > MAX_HEIMDALL_LOOKUP {
@@ -383,18 +429,25 @@ async fn find_latest_milestone_block(client: &PosClient) -> eyre::Result<u64> {
         }
 
         // Fetch the block result
-        let block_result = client
-            .fetch_block_results_by_number(block_number)
-            .await
-            .unwrap_or_else(|_| {
-                panic!(
-                    "unable to fetch heimdall block results for block: {}",
-                    block_number
-                )
-            });
+        let block_result_1 = client.fetch_block_results_by_number(block_number).await;
+        if block_result_1.is_err() {
+            println!("Error: {:?}", block_result_1.unwrap_err());
+            panic!(
+                "unable to fetch heimdall block results for block: {}",
+                block_number
+            );
+        }
+        let block_result = block_result_1.unwrap();
+
+        // .unwrap_or_else(|_| {
+        //     panic!(
+        //         "unable to fetch heimdall block results for block: {}",
+        //         block_number
+        //     )
+        // });
 
         // Check if the block has any milestone tx or not in the `deliver_tx` field
-        let txs = block_result.result.results.deliver_tx;
+        let txs = block_result.result.results.deliver_tx.unwrap_or_default();
         if !txs.is_empty() {
             for tx in txs.iter() {
                 for event in tx.events.iter() {

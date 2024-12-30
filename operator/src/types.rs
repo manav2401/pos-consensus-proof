@@ -8,7 +8,7 @@ pub struct StatusResponse {
 #[derive(Debug, Deserialize)]
 pub struct Status {
     #[serde(rename = "latest_block_height")]
-    pub latest_block_height: u64,
+    pub latest_block_height: String,
     #[serde(rename = "catching_up")]
     pub catching_up: bool,
 }
@@ -78,7 +78,7 @@ pub struct Block {
 
 #[derive(Debug, Deserialize)]
 pub struct BlockData {
-    pub txs: Vec<String>,
+    pub txs: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -131,7 +131,7 @@ pub struct BlockResult {
 }
 #[derive(Debug, Deserialize)]
 pub struct Results {
-    pub deliver_tx: Vec<DeliverTx>,
+    pub deliver_tx: Option<Vec<DeliverTx>>,
 }
 
 #[derive(Debug, Deserialize)]
