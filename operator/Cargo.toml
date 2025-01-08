@@ -12,12 +12,12 @@ name = "verify"
 path = "src/bin/verify.rs"
 
 [[bin]]
-name = "repro"
-path = "src/bin/repro.rs"
+name = "fetch-valset"
+path = "src/bin/fetch-valset.rs"
 
 [dependencies]
 pos-consensus-proof = { path = "../consensus-proof" }
-common = { path = "../common"}
+common = { path = "../common" }
 
 serde_json.workspace = true
 serde.workspace = true
@@ -32,6 +32,8 @@ bincode.workspace = true
 prost-types.workspace = true
 base64.workspace = true
 url.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
 
 # sp1
 sp1-sdk.workspace = true

@@ -56,12 +56,13 @@ pub fn prove(input: PoSConsensusInput) -> PoSConsensusCommit {
     // Execute the `getEncodedValidatorInfo` call using the client executor to fetch the
     // active validator's info from L1.
     let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
-    let call_input = ContractInput {
-        contract_address: input.stake_info_address,
-        caller_address: CALLER,
-        calldata: call.clone(),
-    };
-    let output = executor.execute(call_input).unwrap();
+    let output = executor
+        .execute(ContractInput::new_call(
+            input.stake_info_address,
+            CALLER,
+            call.clone(),
+        ))
+        .unwrap();
     let response = ConsensusProofVerifier::getEncodedValidatorInfoCall::abi_decode_returns(
         &output.contractOutput,
         true,
@@ -82,12 +83,13 @@ pub fn prove(input: PoSConsensusInput) -> PoSConsensusCommit {
     // Execute the `lastVerifiedBorBlockHash` call using the client executor to fetch the
     // last verified bor block hash.
     let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
-    let call_input = ContractInput {
-        contract_address: input.stake_info_address,
-        caller_address: CALLER,
-        calldata: call.clone(),
-    };
-    let output = executor.execute(call_input).unwrap();
+    let output = executor
+        .execute(ContractInput::new_call(
+            input.stake_info_address,
+            CALLER,
+            call.clone(),
+        ))
+        .unwrap();
     let last_verified_bor_block_hash_return =
         ConsensusProofVerifier::lastVerifiedBorBlockHashCall::abi_decode_returns(
             &output.contractOutput,

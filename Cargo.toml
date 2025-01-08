@@ -26,6 +26,8 @@ tokio = { version = "1.21", default-features = false, features = [
     "rt",
     "rt-multi-thread",
 ] }
+tracing = { version = "0.1.40", default-features = false }
+tracing-subscriber = { version = "0.3.19" }
 
 # reth
 reth-primitives = { git = "https://github.com/sp1-patches/reth", tag = "rsp-20240830", default-features = false, features = [
