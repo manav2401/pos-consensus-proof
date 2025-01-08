@@ -324,7 +324,7 @@ async fn find_best_l1_block(
 
     if !skip_l1_block_validation && best_l1_block_number > latest_block {
         println!(
-            "Current L1 block: {} is behind the chosen (best) L1 block: {}. Either the L1 rpc is out of sync or a fork is being used. Set --enforce-l1-block-validaton to false to bypass.",
+            "Current L1 block: {} is behind the chosen (best) L1 block: {}. Either the L1 rpc is out of sync or a fork is being used. Set --skip-l1-block-validation flag to bypass.",
             latest_block, best_l1_block_number
         );
         return Err(eyre::eyre!(
