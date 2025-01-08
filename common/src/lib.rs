@@ -57,6 +57,8 @@ sol! {
         bytes32 public lastVerifiedBorBlockHash;
         function verifyConsensusProof(bytes calldata _proofBytes, bytes32 new_bor_block_hash, bytes32 l1_block_hash) public view;
         function getEncodedValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256);
+        function getValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256);
+        function getCappedValidatorInfo() public view returns(address[] memory, uint256[] memory, uint256);
     }
 }
 

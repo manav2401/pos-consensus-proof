@@ -1,3 +1,4 @@
+use alloy_sol_types::SolCall;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
 
@@ -196,31 +197,33 @@ pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoS
     // Make the call to the getEncodedValidatorInfo function.
     println!("Fetching last verified block from L1...");
     let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
-    let _response: ConsensusProofVerifier::getEncodedValidatorInfoReturn = host_executor
-        .execute(ContractInput {
-            contract_address: stake_info_address,
-            caller_address: CALLER,
-            calldata: call,
-        })
+    let _response = host_executor
+        .execute(ContractInput::new_call(stake_info_address, CALLER, call))
         .await?;
 
     // Make another call to fetch the last verified bor block hash
     println!("Fetching staking data from L1...");
     let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
-    let response: ConsensusProofVerifier::lastVerifiedBorBlockHashReturn = host_executor
-        .execute(ContractInput {
-            contract_address: stake_info_address,
-            caller_address: CALLER,
-            calldata: call,
-        })
+    let response_bytes = host_executor
+        .execute(ContractInput::new_call(stake_info_address, CALLER, call))
         .await?;
 
     // Now that we've executed all of the calls, get the `EVMStateSketch` from the host executor.
     let input = host_executor.finalize().await?;
     let state_sketch_bytes = bincode::serialize(&input)?;
 
+    // Decode the last verified block
+    let response = ConsensusProofVerifier::lastVerifiedBorBlockHashCall::abi_decode_returns(
+        &response_bytes,
+        true,
+    )
+    .unwrap();
+
     // Fetch the bor block against the block hash read
     let prev_bor_block_hash = response.lastVerifiedBorBlockHash;
+    // let response =
+    //     ConsensusProofVerifier::getEncodedValidatorInfoCall::abi_decode_returns(&output, true)
+    //         .unwrap();
 
     // If the hash is zero, use a default header
     let mut prev_bor_header = Header::default();

@@ -1933,7 +1933,7 @@ dependencies = [
  "hex-literal",
  "rfc6979",
  "signature",
- "sp1-lib 3.4.0",
+ "sp1-lib 3.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spki",
 ]
 
@@ -4590,6 +4590,8 @@ dependencies = [
  "sp1-helper",
  "sp1-sdk",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "url",
 ]
 
@@ -6470,7 +6472,7 @@ dependencies = [
 [[package]]
 name = "sp1-cc-client-executor"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1-contract-call/?branch=main#b21343241a7ecc86276e8f5a04911e8670dd9183"
+source = "git+https://github.com/succinctlabs/sp1-contract-call/?branch=main#54a464089e697a5b245ab49ec5acf91a088ae296"
 dependencies = [
  "alloy-sol-types 0.8.15",
  "eyre",
@@ -6489,7 +6491,7 @@ dependencies = [
 [[package]]
 name = "sp1-cc-host-executor"
 version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1-contract-call/?branch=main#b21343241a7ecc86276e8f5a04911e8670dd9183"
+source = "git+https://github.com/succinctlabs/sp1-contract-call/?branch=main#54a464089e697a5b245ab49ec5acf91a088ae296"
 dependencies = [
  "alloy-primitives 0.8.15",
  "alloy-provider",
@@ -6643,8 +6645,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-lib"
-version = "3.0.0"
-source = "git+https://github.com/succinctlabs/sp1.git?branch=dev#91c1fe5baf5a0948df210b41f6c641e4b760e294"
+version = "3.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a5729da1b05d56c01457e5ecabdc77f1cc941df23f2921163a2f325aec22428"
 dependencies = [
  "bincode",
  "serde",
@@ -6653,8 +6656,7 @@ dependencies = [
 [[package]]
 name = "sp1-lib"
 version = "3.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a5729da1b05d56c01457e5ecabdc77f1cc941df23f2921163a2f325aec22428"
+source = "git+https://github.com/succinctlabs/sp1.git?branch=dev#bfb0c6d8e045b5f40422b9c06cb0e9ee21b3c19c"
 dependencies = [
  "bincode",
  "serde",
@@ -6928,7 +6930,7 @@ dependencies = [
  "libm",
  "rand",
  "sha2",
- "sp1-lib 3.4.0",
+ "sp1-lib 3.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -7030,7 +7032,7 @@ dependencies = [
  "lazy_static",
  "rand",
  "rustc-hex",
- "sp1-lib 3.0.0",
+ "sp1-lib 3.4.0 (git+https://github.com/succinctlabs/sp1.git?branch=dev)",
 ]
 
 [[package]]
@@ -7507,9 +7509,9 @@ checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
 
 [[package]]
 name = "tracing"
-version = "0.1.40"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
+checksum = "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
 dependencies = [
  "log",
  "pin-project-lite",
@@ -7519,9 +7521,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
+checksum = "395ae124c09f9e6918a2310af6038fba074bcf474ac352496d5910dd59a2226d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7530,9 +7532,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.32"
+version = "0.1.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c06d3da6113f116aaee68e4d601191614c9053067f9ab7f6edbcb161237daa54"
+checksum = "e672c95779cf947c5311f83787af4fa8fffd12fb27e4993211a84bdfd9610f9c"
 dependencies = [
  "once_cell",
  "valuable",
@@ -7574,9 +7576,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-subscriber"
-version = "0.3.18"
+version = "0.3.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad0f048c97dbd9faa9b7df56362b8ebcaa52adb06b498c050d2f4e32f90a7a8b"
+checksum = "e8189decb5ac0fa7bc8b96b7cb9b2701d60d48805aca84a238004d665fcc4008"
 dependencies = [
  "matchers",
  "nu-ansi-term",
