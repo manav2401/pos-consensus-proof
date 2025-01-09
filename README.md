@@ -24,7 +24,29 @@ This repositories is organised into the following directories:
 
 Make sure you've [Rust](https://rustup.rs/) and [SP1](https://docs.succinct.xyz/docs/getting-started/install) installed.
 
-Using the `operator` service, one can generate consensus proofs for any PoS chain given appropriate configurations are provided. Below are the steps to do the same.
+#### Contract Deployments
+
+For proof generation (except the on-chain verification component), the `StakeInfo` contract acts as a proxy to fetch validator set and stake distribution from the respective L1 Stake Manager Contracts (already deployed for PoS mainnet and Amoy). 
+
+Existing deployments for `StakeInfo`:
+- Ethereum Mainnet: [0x173ca2f40a37f62527713Bf72b085675A0D5e200](https://etherscan.io/address/0x173ca2f40a37f62527713Bf72b085675A0D5e200)
+- Sepolia: [0x978D36Ed8c03EBF2d3b93b492aF8D37aD56ad1B5](https://sepolia.etherscan.io/address/0x978D36Ed8c03EBF2d3b93b492aF8D37aD56ad1B5)
+
+Make a fresh deployment:
+1. Make sure you have environment variables set corresponding to the chain you're deploying on.
+    ```sh
+    RPC=<rpc> # rpc endpoint of chain to be deployed on
+    PK=<pk> # private key of account with funds to be used for deployment
+    SM=<sm> # stake manager proxy address
+    ```
+2. Run the forge command to deploy inside the `contracts` directory.
+    ```
+    forge create --broadcast --rpc-url $RPC --private-key $PK --via-ir src/StakingInfo.sol:StakingInfo --constructor-args $SM
+    ```
+
+#### Using operator for proof generation
+
+The `operator` service can be used for generating consensus proofs for any PoS chain given appropriate configurations are provided. Below are the steps to do the same.
 
 1. Create an environment file using the example. Fill in all relevant details which will be used for assembling the inputs. It needs information about L1 (eth mainnet / sepolia), PoS endpoints (mainnet / amoy for heimdall and bor).
     ```sh
@@ -37,9 +59,12 @@ Using the `operator` service, one can generate consensus proofs for any PoS chai
     ```
 3. Run the operator service
     ```sh
-    RUST_LOG=info cargo run --release -- --milestone_id <id> --milestone_hash <hash> --prev_l2_block_number <hash> --new_l2_block_number <number> --proof_type <plonk/compressed> --prove
+    RUST_LOG=info cargo run --release -- <flags>
     ```
-    Going forward, the initial flags about milestone and block number will be internalised in the operator service itself so that it auto picks up these values. One can generate PLONK and compressed proofs by specifying it in the `proof_type` flag. If you just want to execute, remove the `--prove` flag.
+    Following flags are supported:
+    - `--prove`: Generates an actual zk proof if set. If not, only executes the code with inputs.
+    - `--proof-type`: Type of proof to be generated. Either `compressed` or `plonk`.
+    - `--skip-l1-block-validation`: Skip validating the height of L1 block. Useful when testing against a fork.
 4. Operator also has some helper commands.
     ```sh
     # To print the vkey
