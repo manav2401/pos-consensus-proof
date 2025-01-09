@@ -1,7 +1,7 @@
 use crate::helper::*;
 use std::collections::HashMap;
 
-use alloy_primitives::{keccak256, Uint};
+use alloy_primitives::{keccak256, FixedBytes, Uint};
 use alloy_sol_types::SolCall;
 use sp1_cc_client_executor::{io::EVMStateSketch, ClientExecutor, ContractInput};
 
@@ -55,7 +55,7 @@ pub fn prove(input: PoSConsensusInput) -> PoSConsensusCommit {
 
     // Execute the `getEncodedValidatorInfo` call using the client executor to fetch the
     // active validator's info from L1.
-    let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
+    let call = ConsensusProofVerifier::getValidatorInfoCall {};
     let output = executor
         .execute(ContractInput::new_call(
             input.stake_info_address,
@@ -63,7 +63,7 @@ pub fn prove(input: PoSConsensusInput) -> PoSConsensusCommit {
             call.clone(),
         ))
         .unwrap();
-    let response = ConsensusProofVerifier::getEncodedValidatorInfoCall::abi_decode_returns(
+    let response = ConsensusProofVerifier::getValidatorInfoCall::abi_decode_returns(
         &output.contractOutput,
         true,
     )
@@ -80,23 +80,27 @@ pub fn prove(input: PoSConsensusInput) -> PoSConsensusCommit {
         validator_stakes.insert(signer, powers[i]);
     }
 
+    // TODO(manav): Skip fetching the last verified bor block hash for now as it's expected to
+    // reside on a different contract than stake info. Once there's some clarity on that, modify
+    // the logic accordingly.
     // Execute the `lastVerifiedBorBlockHash` call using the client executor to fetch the
     // last verified bor block hash.
-    let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
-    let output = executor
-        .execute(ContractInput::new_call(
-            input.stake_info_address,
-            CALLER,
-            call.clone(),
-        ))
-        .unwrap();
-    let last_verified_bor_block_hash_return =
-        ConsensusProofVerifier::lastVerifiedBorBlockHashCall::abi_decode_returns(
-            &output.contractOutput,
-            true,
-        )
-        .unwrap();
-    let prev_bor_hash = last_verified_bor_block_hash_return.lastVerifiedBorBlockHash;
+    // let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
+    // let output = executor
+    //     .execute(ContractInput::new_call(
+    //         input.stake_info_address,
+    //         CALLER,
+    //         call.clone(),
+    //     ))
+    //     .unwrap();
+    // let last_verified_bor_block_hash_return =
+    //     ConsensusProofVerifier::lastVerifiedBorBlockHashCall::abi_decode_returns(
+    //         &output.contractOutput,
+    //         true,
+    //     )
+    //     .unwrap();
+    // let prev_bor_hash = last_verified_bor_block_hash_return.lastVerifiedBorBlockHash;
+    let prev_bor_hash = FixedBytes::default();
 
     // If we're running prover for the first time, we won't have a previous bor block hash. Skip
     // all validations if that's the case else verify against that.

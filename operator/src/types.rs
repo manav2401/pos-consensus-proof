@@ -83,7 +83,7 @@ pub struct BlockData {
 
 #[derive(Debug, Deserialize)]
 pub struct LastCommit {
-    pub precommits: Vec<Precommit>,
+    pub precommits: Vec<Option<Precommit>>,
 }
 
 #[derive(Debug, Deserialize)]

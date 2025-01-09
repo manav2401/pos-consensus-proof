@@ -145,7 +145,7 @@ pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoS
     let mut signers: Vec<Address> = [].to_vec();
 
     let heimdall_chain_id = std::env::var("HEIMDALL_CHAIN_ID").expect("HEIMDALL_CHAIN_ID not set");
-    for precommit in block_precommits.iter() {
+    for precommit in block_precommits.iter().flatten() {
         // Only add if the side tx result is non empty
         if precommit.side_tx_results.is_some() {
             let serialized_precommit = serialize_precommit(precommit, &heimdall_chain_id);
@@ -195,16 +195,9 @@ pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoS
     let l1_block_hash = l1_block_header.hash_slow();
 
     // Make the call to the getEncodedValidatorInfo function.
-    println!("Fetching last verified block from L1...");
-    let call = ConsensusProofVerifier::getEncodedValidatorInfoCall {};
+    println!("Fetching validator set distribution from L1...");
+    let call = ConsensusProofVerifier::getValidatorInfoCall {};
     let _response = host_executor
-        .execute(ContractInput::new_call(stake_info_address, CALLER, call))
-        .await?;
-
-    // Make another call to fetch the last verified bor block hash
-    println!("Fetching staking data from L1...");
-    let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
-    let response_bytes = host_executor
         .execute(ContractInput::new_call(stake_info_address, CALLER, call))
         .await?;
 
@@ -212,15 +205,26 @@ pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoS
     let input = host_executor.finalize().await?;
     let state_sketch_bytes = bincode::serialize(&input)?;
 
+    // TODO(manav): Skip fetching the last verified bor block hash for now as it's expected to
+    // reside on a different contract than stake info. Once there's some clarity on that, modify
+    // the logic accordingly.
+    // Make another call to fetch the last verified bor block hash
+    // println!("Fetching last verified bor block from L1...");
+    // let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
+    // let response_bytes = host_executor
+    //     .execute(ContractInput::new_call(stake_info_address, CALLER, call))
+    //     .await?;
     // Decode the last verified block
-    let response = ConsensusProofVerifier::lastVerifiedBorBlockHashCall::abi_decode_returns(
-        &response_bytes,
-        true,
-    )
-    .unwrap();
+    // let response = ConsensusProofVerifier::lastVerifiedBorBlockHashCall::abi_decode_returns(
+    //     &response_bytes,
+    //     true,
+    // )
+    // .unwrap();
 
+    // Because we're not fetching anything from L1, use zero hash for now.
+    let prev_bor_block_hash = FixedBytes::default();
     // Fetch the bor block against the block hash read
-    let prev_bor_block_hash = response.lastVerifiedBorBlockHash;
+    // let prev_bor_block_hash = response.lastVerifiedBorBlockHash;
     // let response =
     //     ConsensusProofVerifier::getEncodedValidatorInfoCall::abi_decode_returns(&output, true)
     //         .unwrap();
