@@ -78,6 +78,7 @@ async fn main() -> eyre::Result<()> {
             println!("No proof type provided, defaulting to compressed");
             proof_type = Some("compressed".to_string());
         }
+        println!("Generating proof...");
         if proof_type.as_ref().unwrap() == "compressed" {
             let proof = prover.generate_consensus_proof_compressed(inputs);
             prover.verify_consensus_proof(&proof);
@@ -197,9 +198,11 @@ pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoS
     // Make the call to the getEncodedValidatorInfo function.
     println!("Fetching validator set distribution from L1...");
     let call = ConsensusProofVerifier::getValidatorInfoCall {};
-    let _response = host_executor
+    let response = host_executor
         .execute(ContractInput::new_call(stake_info_address, CALLER, call))
         .await?;
+
+    println!("Validator set distribution from L1: {:?}", response);
 
     // Now that we've executed all of the calls, get the `EVMStateSketch` from the host executor.
     let input = host_executor.finalize().await?;
