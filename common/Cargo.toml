@@ -9,3 +9,4 @@ serde.workspace = true
 reth-primitives.workspace = true
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
+sp1-sdk.workspace = true

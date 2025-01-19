@@ -1,6 +1,7 @@
 use common::{PoSConsensusInput, CONSENSUS_PROOF_ELF};
 use sp1_sdk::{
-    HashableKey, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin, SP1VerifyingKey,
+    EnvProver, HashableKey, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin,
+    SP1VerifyingKey,
 };
 
 pub mod contract;
@@ -8,7 +9,7 @@ pub mod types;
 pub mod utils;
 
 pub struct ConsensusProver {
-    pub prover_client: ProverClient,
+    pub prover_client: EnvProver,
     pub pkey: SP1ProvingKey,
     pub vkey: SP1VerifyingKey,
 }
@@ -23,7 +24,7 @@ impl ConsensusProver {
     pub fn new() -> Self {
         println!("Initializing SP1 ProverClient...");
         sp1_sdk::utils::setup_logger();
-        let prover_client = ProverClient::new();
+        let prover_client = ProverClient::from_env();
         let (pkey, vkey) = prover_client.setup(CONSENSUS_PROOF_ELF);
         println!("SP1 ProverClient initialized!");
         println!("VKey: {:?}", vkey.bytes32());
@@ -50,7 +51,7 @@ impl ConsensusProver {
         // local or network proof.
         let proof = self
             .prover_client
-            .prove(&self.pkey, stdin)
+            .prove(&self.pkey, &stdin)
             .plonk()
             .run()
             .expect("Failed to generate PLONK proof.");
@@ -77,7 +78,7 @@ impl ConsensusProver {
         // local or network proof.
         let proof = self
             .prover_client
-            .prove(&self.pkey, stdin)
+            .prove(&self.pkey, &stdin)
             .compressed()
             .run()
             .expect("Failed to generate compressed proof.");
@@ -102,7 +103,7 @@ impl ConsensusProver {
 
         let (_, report) = self
             .prover_client
-            .execute(&self.pkey.elf, stdin)
+            .execute(&self.pkey.elf, &stdin)
             .run()
             .unwrap();
 

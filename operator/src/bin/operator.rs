@@ -1,4 +1,3 @@
-use alloy_sol_types::SolCall;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
 
