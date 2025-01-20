@@ -5,7 +5,7 @@
 //! RUST_LOG=info cargo run --package operator --bin vkey --release
 //! ```
 
-use common::CONSENSUS_PROOF_ELF;
+use pos_consensus_proof_operator::CONSENSUS_PROOF_ELF;
 use sp1_sdk::{HashableKey, ProverClient};
 fn main() {
     // Setup the logger.
