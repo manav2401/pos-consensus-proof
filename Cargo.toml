@@ -50,14 +50,12 @@ alloy-rpc-types = { version = "0.3", default-features = false, features = [
 ] }
 
 # sp1
-sp1-zkvm = "3.4.0"
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v3.4.0" }
+sp1-zkvm = "4.0.0"
+sp1-sdk = "4.0.0"
 sp1-cc-client-executor = { git = "https://github.com/succinctlabs/sp1-contract-call/", branch = "main" }
 sp1-cc-host-executor = { git = "https://github.com/succinctlabs/sp1-contract-call/", branch = "main" }
 
 [patch.crates-io]
-crypto-bigint = { git = "https://github.com/sp1-patches/RustCrypto-bigint", branch = "patch-v0.5.5" }
-tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", branch = "patch-v2.0.2" }
-ecdsa-core = { git = "https://github.com/sp1-patches/signatures", package = "ecdsa", branch = "patch-ecdsa-v0.16.9" }
-secp256k1 = { git = "https://github.com/sp1-patches/rust-secp256k1", branch = "patch-secp256k1-v0.29.1" }
-substrate-bn = { git = "https://github.com/sp1-patches/bn", branch = "patch-v0.6.0" }
+tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", tag = "patch-2.0.2-sp1-4.0.0" }
+ecdsa-core = { git = "https://github.com/sp1-patches/signatures", package = "ecdsa", tag = "patch-0.16.9-sp1-4.0.0" }
+secp256k1 = { git = "https://github.com/sp1-patches/rust-secp256k1", tag = "patch-0.29.1-sp1-4.0.0" }

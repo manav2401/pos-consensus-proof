@@ -23,3 +23,6 @@ pgo-data.profdata
 
 # Added by cargo
 /target
+
+# saved proofs
+operator/consensus_proofs/*

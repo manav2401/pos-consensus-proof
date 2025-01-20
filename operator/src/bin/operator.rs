@@ -1,7 +1,7 @@
-use alloy_sol_types::SolCall;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
 
+use ethers::types::BlockId;
 use prost_types::Timestamp;
 use sp1_sdk::SP1ProofWithPublicValues;
 use std::path::PathBuf;
@@ -10,7 +10,7 @@ use url::Url;
 
 use alloy_primitives::{Address, FixedBytes};
 use alloy_provider::ReqwestProvider;
-use alloy_rpc_types::BlockNumberOrTag;
+use alloy_rpc_types::{BlockHashOrNumber, BlockNumberOrTag};
 use ethers::providers::{Http, Middleware, Provider};
 use reth_primitives::{hex, Header};
 
@@ -86,7 +86,7 @@ async fn main() -> eyre::Result<()> {
                 proof,
                 l2_chain_id.as_str(),
                 format!(
-                    "../../proof/chain{}/consensus_block_{}_to_{}.bin",
+                    "consensus_proofs/chain{}/consensus_block_{}_to_{}.bin",
                     l2_chain_id.as_str(),
                     prev_l2_block_number,
                     new_l2_block_number,
@@ -99,7 +99,7 @@ async fn main() -> eyre::Result<()> {
                 proof,
                 l2_chain_id.as_str(),
                 format!(
-                    "../../proof/chain{}/consensus_block_{}_to_{}.bin",
+                    "consensus_proofs/chain{}/consensus_block_{}_to_{}.bin",
                     l2_chain_id.as_str(),
                     prev_l2_block_number,
                     new_l2_block_number,
@@ -117,12 +117,13 @@ async fn main() -> eyre::Result<()> {
 
 pub fn save_proof(proof: SP1ProofWithPublicValues, l2_chain_id: &str, name: String) {
     // Create path to save the proof
-    let fixture_path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("../../proof/chain{}", l2_chain_id));
+    let fixture_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("consensus_proofs/chain{}", l2_chain_id));
     std::fs::create_dir_all(&fixture_path).expect("failed to create fixture path");
 
-    match proof.save(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(name)) {
-        Ok(_) => println!("Proof saved successfully."),
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(name.clone());
+    match proof.save(&path) {
+        Ok(_) => println!("Proof saved successfully to {}", path.to_str().unwrap()),
         Err(e) => eprintln!("Failed to save proof: {}", e),
     }
 }
@@ -173,8 +174,12 @@ pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoS
         std::env::var("ETH_RPC_URL").unwrap_or_else(|_| panic!("Missing ETH_RPC_URL in env"));
 
     // Calculate the best l1 block to use
-    let l1_block_number_u64 =
-        find_best_l1_block(validator_set.result.validators, skip_l1_block_validation).await?;
+    let l1_block_number_u64 = find_best_l1_block(
+        validator_set.result.validators,
+        skip_l1_block_validation,
+        bor_header.timestamp,
+    )
+    .await?;
     println!("L1 block chosen: {}", l1_block_number_u64);
 
     // The L1 block number against which the transaction is executed
@@ -308,6 +313,7 @@ pub fn serialize_precommit(precommit: &Precommit, heimdall_chain_id: &String) ->
 async fn find_best_l1_block(
     validator_set: Vec<Validator>,
     skip_l1_block_validation: bool,
+    bor_timestamp: u64,
 ) -> eyre::Result<u64> {
     let mut best_l1_block_number = 0;
     for validator in validator_set.iter() {
@@ -327,24 +333,46 @@ async fn find_best_l1_block(
     let rpc_url =
         std::env::var("ETH_RPC_URL").unwrap_or_else(|_| panic!("Missing ETH_RPC_URL in env"));
     let provider = Provider::<Http>::try_from(rpc_url).unwrap();
-    let latest_block = provider.get_block_number().await.unwrap().as_u64();
+    let latest_block_number = provider.get_block_number().await.unwrap().as_u64();
 
-    if !skip_l1_block_validation && best_l1_block_number > latest_block {
+    if !skip_l1_block_validation && best_l1_block_number > latest_block_number {
         println!(
             "Current L1 block: {} is behind the chosen (best) L1 block: {}. Either the L1 rpc is out of sync or a fork is being used. Set --skip-l1-block-validation flag to bypass.",
-            latest_block, best_l1_block_number
+            latest_block_number, best_l1_block_number
         );
         return Err(eyre::eyre!(
             "Current L1 block is behind chosen L1 block number"
         ));
     }
 
-    if skip_l1_block_validation && best_l1_block_number > latest_block {
+    if skip_l1_block_validation && best_l1_block_number > latest_block_number {
         println!(
             "Using the latest L1 block: {} as the chosen (best) L1 block: {} is behind",
-            latest_block, best_l1_block_number
+            latest_block_number, best_l1_block_number
         );
-        best_l1_block_number = latest_block;
+        best_l1_block_number = latest_block_number;
+    }
+
+    // Ensure that the difference between L1 and L2 (bor) timestamp is not more than 3 hours. This
+    // is a strict condition in the circuit.
+    let best_l1_block = provider
+        .get_block(BlockId::Number(ethers::types::BlockNumber::Number(
+            best_l1_block_number.into(),
+        )))
+        .await
+        .unwrap()
+        .unwrap();
+    let l1_timestamp = i64::try_from(best_l1_block.timestamp.as_u64()).unwrap();
+    let l2_timestamp = i64::try_from(bor_timestamp).unwrap();
+    if l1_timestamp - l2_timestamp > 10800 || l1_timestamp - l2_timestamp < -10800 {
+        let finalized_block = provider
+            .get_block(BlockId::Number(ethers::types::BlockNumber::Finalized))
+            .await
+            .unwrap()
+            .unwrap();
+        let finalized_block_number = finalized_block.number.unwrap().as_u64();
+        println!("Time difference between L1 and L2 blocks is >3hrs, choosing recent finalized L1 block instead: {}", finalized_block_number);
+        return Ok(finalized_block_number);
     }
 
     Ok(best_l1_block_number)
