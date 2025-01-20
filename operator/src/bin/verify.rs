@@ -14,16 +14,21 @@ use sp1_sdk::SP1ProofWithPublicValues;
 async fn main() -> eyre::Result<()> {
     dotenv::dotenv().ok();
 
+    // Skip setting the tracer/logger as sp1 already sets it globally
+    // tracing_subscriber::fmt()
+    //     .with_env_filter(EnvFilter::from_default_env())
+    //     .init();
+
     // Load proof from `proof.bin`
     let proof = SP1ProofWithPublicValues::load("proof.bin").unwrap();
-    println!("Proof loaded from proof.bin");
+    tracing::info!("Proof loaded from proof.bin");
 
     let prover = ConsensusProver::new();
     prover.verify_consensus_proof(&proof);
-    println!("Proof verified locally, sending for on-chain verification!");
+    tracing::info!("Proof verified locally, sending for on-chain verification!");
 
     send_proof_onchain(proof).await?;
-    println!("Done!");
+    tracing::info!("Done!");
 
     Ok(())
 }
@@ -45,9 +50,9 @@ pub async fn send_proof_onchain(proof: SP1ProofWithPublicValues) -> eyre::Result
     let result = contract_client.send(call_data).await;
 
     if result.is_err() {
-        println!("error sending proof: err={:?}", result.err().unwrap());
+        tracing::info!("error sending proof: err={:?}", result.err().unwrap());
     } else {
-        println!("Successfully verified proof on-chain!");
+        tracing::info!("Successfully verified proof on-chain!");
     }
 
     Ok(())

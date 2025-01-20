@@ -4947,7 +4947,6 @@ dependencies = [
  "sp1-sdk",
  "tokio",
  "tracing",
- "tracing-subscriber",
  "url",
 ]
 

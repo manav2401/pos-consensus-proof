@@ -3,6 +3,7 @@ use sp1_sdk::{
     include_elf, EnvProver, HashableKey, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey,
     SP1Stdin, SP1VerifyingKey,
 };
+use std::time::Instant;
 
 pub mod contract;
 pub mod types;
@@ -27,12 +28,12 @@ impl Default for ConsensusProver {
 
 impl ConsensusProver {
     pub fn new() -> Self {
-        println!("Initializing SP1 ProverClient...");
+        tracing::info!("Initializing SP1 ProverClient...");
         sp1_sdk::utils::setup_logger();
         let prover_client = ProverClient::from_env();
         let (pkey, vkey) = prover_client.setup(CONSENSUS_PROOF_ELF);
-        println!("SP1 ProverClient initialized!");
-        println!("VKey: {:?}", vkey.bytes32());
+        tracing::info!("SP1 ProverClient initialized!");
+        tracing::info!("VKey: {:?}", vkey.bytes32());
         Self {
             prover_client,
             pkey,
@@ -47,10 +48,11 @@ impl ConsensusProver {
         &self,
         input: PoSConsensusInput,
     ) -> SP1ProofWithPublicValues {
+        let now = Instant::now();
+        tracing::info!("Starting to generate PLONK proof...");
+
         let mut stdin = SP1Stdin::new();
         stdin.write(&input);
-
-        println!("Starting to generate PLONK proof...");
 
         // Generate the proof. Depending on SP1_PROVER env variable, this may be a mock,
         // local or network proof.
@@ -61,7 +63,8 @@ impl ConsensusProver {
             .run()
             .expect("Failed to generate PLONK proof.");
 
-        println!("Done generating PLONK proof.");
+        let elapsed = now.elapsed();
+        tracing::info!("Done generating PLONK proof in {:.2?}", elapsed);
 
         // Return the proof.
         proof
@@ -74,10 +77,11 @@ impl ConsensusProver {
         &self,
         input: PoSConsensusInput,
     ) -> SP1ProofWithPublicValues {
+        let now = Instant::now();
+        tracing::info!("Starting to generate compressed proof...");
+
         let mut stdin = SP1Stdin::new();
         stdin.write(&input);
-
-        println!("Starting to generate compressed proof...");
 
         // Generate the proof. Depending on SP1_PROVER env variable, this may be a mock,
         // local or network proof.
@@ -88,21 +92,27 @@ impl ConsensusProver {
             .run()
             .expect("Failed to generate compressed proof.");
 
-        println!("Done generating compressed proof.");
+        let elapsed = now.elapsed();
+        tracing::info!("Done generating compressed proof in {:.2?}", elapsed);
 
         // Return the proof.
         proof
     }
 
     pub fn verify_consensus_proof(&self, proof: &SP1ProofWithPublicValues) {
-        println!("Starting to verify proof...");
+        let now = Instant::now();
+        tracing::info!("Starting to verify proof...");
         self.prover_client
             .verify(proof, &self.vkey)
             .expect("Failed to verify proof.");
-        println!("Done verifying proof.")
+        let elapsed = now.elapsed();
+        tracing::info!("Done verifying proof in {:.2?}", elapsed);
     }
 
     pub fn execute(&self, input: PoSConsensusInput) {
+        let now = Instant::now();
+        tracing::info!("Starting to execute program...");
+
         let mut stdin = SP1Stdin::new();
         stdin.write(&input);
 
@@ -112,9 +122,11 @@ impl ConsensusProver {
             .run()
             .unwrap();
 
-        println!(
-            "Finished executing in {} cycles",
-            report.total_instruction_count()
+        let elapsed = now.elapsed();
+        tracing::info!(
+            "Done executing program in {} cycles and {:.2?} time",
+            report.total_instruction_count(),
+            elapsed
         );
     }
 }
