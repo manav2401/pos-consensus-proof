@@ -1,17 +1,17 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use clap::Parser;
-
-use ethers::types::BlockId;
 use prost_types::Timestamp;
 use sp1_sdk::SP1ProofWithPublicValues;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::time::Instant;
 use url::Url;
 
 use alloy_primitives::{Address, FixedBytes};
 use alloy_provider::ReqwestProvider;
-use alloy_rpc_types::{BlockHashOrNumber, BlockNumberOrTag};
+use alloy_rpc_types::BlockNumberOrTag;
 use ethers::providers::{Http, Middleware, Provider};
+use ethers::types::BlockId;
 use reth_primitives::{hex, Header};
 
 use sp1_cc_client_executor::ContractInput;
@@ -53,6 +53,11 @@ pub struct Context {
 async fn main() -> eyre::Result<()> {
     dotenv::dotenv().ok();
 
+    // Skip setting the tracer/logger as sp1 already sets it globally
+    // tracing_subscriber::fmt()
+    //     .with_env_filter(EnvFilter::from_default_env())
+    //     .init();
+
     let args = Args::parse();
     let prove = args.prove;
     let mut proof_type = args.proof_type.clone();
@@ -64,10 +69,13 @@ async fn main() -> eyre::Result<()> {
     sp1_sdk::utils::setup_logger();
     let prover = ConsensusProver::new();
 
-    println!("Assembling data for generating proof...");
+    let now = Instant::now();
+    tracing::info!("Assembling data for generating proof...");
     let inputs = generate_inputs(skip_l1_block_validation).await?;
+    let elapsed = now.elapsed();
+    tracing::info!("Done assembling data in {:.2?}", elapsed);
 
-    println!("Executing the program...");
+    // Execute the program first
     prover.execute(inputs.clone());
 
     let prev_l2_block_number = inputs.prev_bor_header.number;
@@ -75,10 +83,10 @@ async fn main() -> eyre::Result<()> {
 
     if prove {
         if proof_type.is_none() {
-            println!("No proof type provided, defaulting to compressed");
+            tracing::info!("No proof type provided, defaulting to compressed");
             proof_type = Some("compressed".to_string());
         }
-        println!("Generating proof...");
+        tracing::info!("Generating proof...");
         if proof_type.as_ref().unwrap() == "compressed" {
             let proof = prover.generate_consensus_proof_compressed(inputs);
             prover.verify_consensus_proof(&proof);
@@ -106,10 +114,10 @@ async fn main() -> eyre::Result<()> {
                 ),
             );
         } else {
-            println!("Invalid proof type provided")
+            tracing::error!("Invalid proof type provided")
         }
     } else {
-        println!("Proof generation skipped");
+        tracing::info!("Proof generation skipped");
     }
 
     Ok(())
@@ -123,8 +131,8 @@ pub fn save_proof(proof: SP1ProofWithPublicValues, l2_chain_id: &str, name: Stri
 
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(name.clone());
     match proof.save(&path) {
-        Ok(_) => println!("Proof saved successfully to {}", path.to_str().unwrap()),
-        Err(e) => eprintln!("Failed to save proof: {}", e),
+        Ok(_) => tracing::info!("Proof saved successfully to {}", path.to_str().unwrap()),
+        Err(e) => tracing::error!("Failed to save proof: {}", e),
     }
 }
 
@@ -132,7 +140,7 @@ pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoS
     let client = PosClient::default();
 
     let context = find_latest_milestone_tx(&client).await?;
-    println!("Context: {:?}", context);
+    tracing::info!("Context: {:?}", context);
 
     // Fetch the block in which side transaction voting for milestone tx completed (n+2).
     let number: u64 = context.milestone_block_height + 2;
@@ -180,7 +188,7 @@ pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoS
         bor_header.timestamp,
     )
     .await?;
-    println!("L1 block chosen: {}", l1_block_number_u64);
+    tracing::info!("L1 block chosen: {}", l1_block_number_u64);
 
     // The L1 block number against which the transaction is executed
     let l1_block_number = BlockNumberOrTag::Number(l1_block_number_u64);
@@ -201,13 +209,13 @@ pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoS
     let l1_block_hash = l1_block_header.hash_slow();
 
     // Make the call to the getEncodedValidatorInfo function.
-    println!("Fetching validator set distribution from L1...");
+    tracing::info!("Fetching validator set distribution from L1...");
     let call = ConsensusProofVerifier::getValidatorInfoCall {};
     let response = host_executor
         .execute(ContractInput::new_call(stake_info_address, CALLER, call))
         .await?;
 
-    println!("Validator set distribution from L1: {:?}", response);
+    tracing::info!("Validator set distribution from L1: {:?}", response);
 
     // Now that we've executed all of the calls, get the `EVMStateSketch` from the host executor.
     let input = host_executor.finalize().await?;
@@ -217,7 +225,7 @@ pub async fn generate_inputs(skip_l1_block_validation: bool) -> eyre::Result<PoS
     // reside on a different contract than stake info. Once there's some clarity on that, modify
     // the logic accordingly.
     // Make another call to fetch the last verified bor block hash
-    // println!("Fetching last verified bor block from L1...");
+    // tracing::info!("Fetching last verified bor block from L1...");
     // let call = ConsensusProofVerifier::lastVerifiedBorBlockHashCall {};
     // let response_bytes = host_executor
     //     .execute(ContractInput::new_call(stake_info_address, CALLER, call))
@@ -336,7 +344,7 @@ async fn find_best_l1_block(
     let latest_block_number = provider.get_block_number().await.unwrap().as_u64();
 
     if !skip_l1_block_validation && best_l1_block_number > latest_block_number {
-        println!(
+        tracing::info!(
             "Current L1 block: {} is behind the chosen (best) L1 block: {}. Either the L1 rpc is out of sync or a fork is being used. Set --skip-l1-block-validation flag to bypass.",
             latest_block_number, best_l1_block_number
         );
@@ -346,9 +354,10 @@ async fn find_best_l1_block(
     }
 
     if skip_l1_block_validation && best_l1_block_number > latest_block_number {
-        println!(
+        tracing::info!(
             "Using the latest L1 block: {} as the chosen (best) L1 block: {} is behind",
-            latest_block_number, best_l1_block_number
+            latest_block_number,
+            best_l1_block_number
         );
         best_l1_block_number = latest_block_number;
     }
@@ -371,7 +380,7 @@ async fn find_best_l1_block(
             .unwrap()
             .unwrap();
         let finalized_block_number = finalized_block.number.unwrap().as_u64();
-        println!("Time difference between L1 and L2 blocks is >3hrs, choosing recent finalized L1 block instead: {}", finalized_block_number);
+        tracing::info!("Time difference between L1 and L2 blocks is >3hrs, choosing recent finalized L1 block instead: {}", finalized_block_number);
         return Ok(finalized_block_number);
     }
 
@@ -450,7 +459,7 @@ async fn find_latest_milestone_block(client: &PosClient) -> eyre::Result<u64> {
     let mut block_number = status.result.latest_block_height.parse::<u64>().unwrap() - 2;
     let mut count: u64 = 0;
 
-    println!(
+    tracing::info!(
         "Starting to look for latest milestone transaction. Height: {}",
         block_number
     );
@@ -463,13 +472,13 @@ async fn find_latest_milestone_block(client: &PosClient) -> eyre::Result<u64> {
             ));
         }
         if count % 10 == 0 {
-            println!("Looking for milestone tx in block: {}", block_number);
+            tracing::info!("Looking for milestone tx in block: {}", block_number);
         }
 
         // Fetch the block result
         let block_result_1 = client.fetch_block_results_by_number(block_number).await;
         if block_result_1.is_err() {
-            println!("Error: {:?}", block_result_1.unwrap_err());
+            tracing::info!("Error: {:?}", block_result_1.unwrap_err());
             panic!(
                 "unable to fetch heimdall block results for block: {}",
                 block_number
@@ -490,7 +499,7 @@ async fn find_latest_milestone_block(client: &PosClient) -> eyre::Result<u64> {
             for tx in txs.iter() {
                 for event in tx.events.iter() {
                     if event.type_field == "milestone" {
-                        println!("Milestone tx found in block: {}", block_number);
+                        tracing::info!("Milestone tx found in block: {}", block_number);
                         return Ok(block_number);
                     }
                 }

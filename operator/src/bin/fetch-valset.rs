@@ -5,29 +5,27 @@
 //! ```shell
 //! RUST_LOG=info cargo run --package operator --bin fetch-valset --release
 //! ```
-use alloy_sol_types::SolCall;
 use std::str::FromStr;
 use url::Url;
 
 use alloy_primitives::Address;
 use alloy_provider::ReqwestProvider;
 use alloy_rpc_types::BlockNumberOrTag;
+use alloy_sol_types::SolCall;
 
 use sp1_cc_client_executor::ContractInput;
 use sp1_cc_host_executor::HostExecutor;
 
 use common::{ConsensusProofVerifier, CALLER};
 
-use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     dotenv::dotenv().ok();
 
-    let _ = tracing_subscriber::registry()
-        .with(EnvFilter::from_default_env())
-        .with(fmt::layer())
-        .try_init();
+    // Skip setting the tracer/logger as sp1 already sets it globally
+    // tracing_subscriber::fmt()
+    //     .with_env_filter(EnvFilter::from_default_env())
+    //     .init();
 
     let _sepolia: u64 = 7433246;
     let mainnet: u64 = 21572281;

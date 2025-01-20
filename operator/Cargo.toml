@@ -33,7 +33,6 @@ prost-types.workspace = true
 base64.workspace = true
 url.workspace = true
 tracing.workspace = true
-tracing-subscriber.workspace = true
 
 # sp1
 sp1-sdk.workspace = true

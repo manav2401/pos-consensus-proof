@@ -69,7 +69,7 @@ impl PosClient {
     /// Fetches current heimdall status (sync status and latest height specifically)
     pub async fn fetch_heimdall_status(&self) -> Result<StatusResponse> {
         let url = format!("{}/status", self.heimdall_url);
-        println!("Fetching heimdall status from: {}", url);
+        tracing::info!("Fetching heimdall status from: {}", url);
         let response = self
             .http_client
             .get(url)
@@ -84,7 +84,7 @@ impl PosClient {
     /// Fetches a heimdall milestone by id
     pub async fn fetch_milestone_by_id(&self, id: u64) -> Result<MilestoneResponse> {
         let url = format!("{}/milestone/{}", self.heimdall_url, id);
-        println!("Fetching milestone from: {}", url);
+        tracing::info!("Fetching milestone from: {}", url);
         let response = self
             .http_client
             .get(url)
@@ -99,7 +99,7 @@ impl PosClient {
     /// Fetches a tendermint transaction by hash
     pub async fn fetch_tx_by_hash(&self, hash: String) -> Result<TxResponse> {
         let url = format!("{}/tx?hash={}", self.tendermint_url, hash);
-        println!("Fetching milestone tx by hash: {}", url);
+        tracing::info!("Fetching milestone tx by hash: {}", url);
         let response: TxResponse = self
             .http_client
             .get(url)
@@ -114,7 +114,7 @@ impl PosClient {
     /// Fetches a tendermint block by number
     pub async fn fetch_block_by_number(&self, number: u64) -> Result<BlockResponse> {
         let url = format!("{}/block?height={}", self.tendermint_url, number);
-        println!("Fetching block by number: {}", url);
+        tracing::info!("Fetching block by number: {}", url);
         let response = self
             .http_client
             .get(url)
@@ -129,7 +129,7 @@ impl PosClient {
     /// Fetches a tendermint block results by number
     pub async fn fetch_block_results_by_number(&self, number: u64) -> Result<BlockResultResponse> {
         let url = format!("{}/block_results?height={}", self.tendermint_url, number);
-        println!("Fetching block results by number: {}", url);
+        tracing::info!("Fetching block results by number: {}", url);
         let response = self
             .http_client
             .get(url)
@@ -144,7 +144,7 @@ impl PosClient {
     /// Fetches the validator set from heimdall
     pub async fn fetch_validator_set(&self) -> Result<ValidatorSetResponse> {
         let url: String = format!("{}/staking/validator-set", self.heimdall_url);
-        println!("Fetching validator set from: {}", url);
+        tracing::info!("Fetching validator set from: {}", url);
         let response: ValidatorSetResponse = self
             .http_client
             .get(url)
@@ -162,7 +162,7 @@ impl PosClient {
             "{}/staking/validator-set?height={}",
             self.heimdall_url, height
         );
-        println!("Fetching validator set at height from: {}", url);
+        tracing::info!("Fetching validator set at height from: {}", url);
         let response = self
             .http_client
             .get(url)
@@ -173,7 +173,7 @@ impl PosClient {
         if json_response.is_ok() {
             Ok(json_response?)
         } else {
-            println!("Failed to fetch validator set at height, please use an archive node. Using latest block instead");
+            tracing::warn!("Failed to fetch validator set at height, please use an archive node. Using latest block instead");
             let response = self.fetch_validator_set().await?;
             Ok(response)
         }
